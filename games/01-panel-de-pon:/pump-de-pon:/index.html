@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>ポンプでポン | ケミカルポンプ・アクションパズル</title>
+<style>
+  :root{
+    --steel-900:#101820;
+    --steel-800:#18222e;
+    --steel-700:#22303f;
+    --steel-line:#33465a;
+    --iwaki-blue:#0d6fb8;
+    --iwaki-cyan:#37a7e0;
+    --safety-yellow:#f5b50a;
+    --panel-md:#1976d2;
+    --panel-mx:#00897b;
+    --panel-eh:#ef6c00;
+    --panel-yts:#f3b212;
+    --panel-mtr:#6a5acd;
+    --panel-fit:#d23c3c;
+    --text-main:#e8eef4;
+    --text-dim:#8aa0b5;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  html{
+    touch-action:none;
+    overscroll-behavior:none;
+  }
+  body{
+    background:
+      repeating-linear-gradient(45deg, transparent 0 14px, rgba(255,255,255,.012) 14px 28px),
+      linear-gradient(180deg,#0c141d 0%, #101c28 60%, #0b121a 100%);
+    position:relative; overflow-x:hidden;
+    color:var(--text-main);
+    font-family:"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",system-ui,sans-serif;
+    display:flex;flex-direction:column;align-items:center;
+    min-height:100%;
+    user-select:none;-webkit-user-select:none;
+    touch-action:manipulation;
+  }
+  header{
+    width:100%;max-width:560px;
+    padding:6px 14px 4px;
+    display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;
+  }
+  .logo{
+    font-weight:900;font-size:21px;letter-spacing:1px;
+    color:#fff;
+    text-shadow:0 2px 0 rgba(0,0,0,.4);
+  }
+  .logo .pon{color:var(--iwaki-cyan);}
+  .logo-sub{
+    font-size:10.5px;color:var(--text-dim);letter-spacing:.18em;
+    border-left:3px solid var(--iwaki-blue);padding-left:8px;
+  }
+  #game-wrap{
+    width:100%;max-width:560px;
+    display:flex;flex-direction:column;align-items:center;
+    padding:0 4px 16px;
+  }
+  #hud{
+    width:100%;
+    display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;
+    margin-bottom:6px;
+  }
+  .hud-box{
+    background:var(--steel-800);
+    border:1px solid var(--steel-line);
+    border-radius:6px;
+    padding:3px 9px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.05);
+  }
+  .hud-label{font-size:9.5px;color:var(--text-dim);letter-spacing:.14em;}
+  .hud-value{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.15;}
+  #hud-chain .hud-value{color:var(--safety-yellow);}
+  #stage{
+    position:relative;width:100%;
+    display:flex;justify-content:center;
+  }
+  #board-frame{
+    position:relative;
+    background:linear-gradient(180deg,#2a3a4c,#1b2735);
+    border:1px solid #3c5066;
+    border-radius:10px;
+    padding:6px;
+    box-shadow:0 10px 30px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.08);
+  }
+  /* リベット風 */
+  #board-frame::before,#board-frame::after{
+    content:"";position:absolute;width:7px;height:7px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#9fb4c8,#4a5d70 70%);
+    top:6px;
+  }
+  #board-frame::before{left:6px;}
+  #board-frame::after{right:6px;}
+  canvas{display:block;border-radius:5px;background:#0a1118;touch-action:none;}
+  #overlay{
+    position:absolute;inset:6px;
+    background:rgba(8,14,20,.86);
+    border-radius:5px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:12px;gap:8px;
+    backdrop-filter:blur(2px);
+    overflow-y:auto;overflow-x:hidden;
+    box-sizing:border-box;
+  }
+  #overlay.hidden{display:none;}
+  #overlay h2{font-size:21px;font-weight:900;letter-spacing:.06em;margin:0;}
+  #overlay p{font-size:12px;color:var(--text-dim);line-height:1.7;margin:0;}
+  #overlay .final-score{font-size:28px;font-weight:900;color:var(--safety-yellow);}
+  .btn-main{
+    touch-action:manipulation;
+    font-family:inherit;
+    background:linear-gradient(180deg,var(--iwaki-cyan),var(--iwaki-blue));
+    color:#fff;border:none;border-radius:8px;
+    font-size:16px;font-weight:800;letter-spacing:.1em;
+    padding:12px 34px;cursor:pointer;
+    box-shadow:0 4px 0 #084a7c, 0 6px 14px rgba(0,0,0,.45);
+  }
+  .btn-main:active{transform:translateY(3px);box-shadow:0 1px 0 #084a7c;}
+  #controls{
+    width:100%;
+    display:flex;justify-content:space-between;align-items:center;
+    margin-top:8px;gap:10px;
+  }
+  .pad{display:grid;grid-template-columns:repeat(3,46px);grid-template-rows:repeat(2,42px);gap:4px;}
+  .pad button, .act button{
+    touch-action:manipulation;
+    font-family:inherit;
+    background:linear-gradient(180deg,#33465a,#22303f);
+    border:1px solid #44597000;border:1px solid #445970;
+    color:var(--text-main);
+    border-radius:7px;font-size:16px;font-weight:700;
+    cursor:pointer;
+    box-shadow:0 3px 0 #141d27;
+  }
+  .pad button:active, .act button:active{transform:translateY(2px);box-shadow:0 1px 0 #141d27;}
+  .pad #bt-up{grid-column:2;grid-row:1;}
+  .pad #bt-left{grid-column:1;grid-row:2;}
+  .pad #bt-down{grid-column:2;grid-row:2;}
+  .pad #bt-right{grid-column:3;grid-row:2;}
+  .act{display:flex;flex-direction:column;gap:6px;}
+  .act button{width:108px;height:42px;font-size:13px;letter-spacing:.06em;}
+  #bt-swap{background:linear-gradient(180deg,var(--iwaki-cyan),var(--iwaki-blue));box-shadow:0 3px 0 #084a7c;}
+  #bt-raise{background:linear-gradient(180deg,#f0a93c,#cf7f0d);box-shadow:0 3px 0 #8a5406;color:#1c1206;}
+  #legend{
+    width:100%;margin-top:14px;
+    background:var(--steel-800);
+    border:1px solid var(--steel-line);
+    border-radius:8px;padding:10px 12px;
+  }
+  #legend h3{
+    font-size:10.5px;color:var(--text-dim);letter-spacing:.18em;margin-bottom:8px;
+    display:flex;align-items:center;gap:8px;
+  }
+  #legend h3::after{content:"";flex:1;height:1px;background:var(--steel-line);}
+  .legend-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
+  .legend-item{display:flex;align-items:center;gap:7px;font-size:11px;}
+  .legend-chip{width:22px;height:22px;border-radius:5px;flex:none;border:1px solid rgba(255,255,255,.25);}
+  .legend-item small{display:block;color:var(--text-dim);font-size:9px;}
+  #howto{
+    width:100%;margin-top:8px;
+    font-size:10.5px;color:var(--text-dim);line-height:1.9;
+    padding:0 4px;
+  }
+  #howto b{color:var(--text-main);}
+  kbd{
+    background:#2b3b4c;border:1px solid #46596d;border-bottom-width:2px;
+    border-radius:4px;padding:0 5px;font-size:10px;color:#dce6ef;
+    font-family:inherit;
+  }
+  /* ===== ステージ背景エフェクト ===== */
+  #bg-canvas{
+    position:fixed;top:0;left:0;width:100vw;height:100vh;
+    pointer-events:none;z-index:0;opacity:0;
+    transition:opacity .6s;
+  }
+  #bg-canvas.active{opacity:1;}
+  #game-wrap, header{ position:relative; z-index:1; }
+
+  /* ステージ2: 背景レインボーグロー */
+  body.stage2{
+    background:linear-gradient(180deg,#0a0a18 0%,#12001a 60%,#000a12 100%);
+  }
+  /* ステージ2: ネオン管フレーム */
+  @keyframes neon-cycle{
+    0%   {border-color:#ff2e6e; box-shadow:0 0 6px #ff2e6e, 0 0 16px #ff2e6e, 0 0 30px #ff2e6e, inset 0 0 12px rgba(255,46,110,.55);}
+    20%  {border-color:#ff9e2e; box-shadow:0 0 6px #ff9e2e, 0 0 16px #ff9e2e, 0 0 30px #ff9e2e, inset 0 0 12px rgba(255,158,46,.55);}
+    40%  {border-color:#ffe62e; box-shadow:0 0 6px #ffe62e, 0 0 16px #ffe62e, 0 0 30px #ffe62e, inset 0 0 12px rgba(255,230,46,.55);}
+    60%  {border-color:#2effa0; box-shadow:0 0 6px #2effa0, 0 0 16px #2effa0, 0 0 30px #2effa0, inset 0 0 12px rgba(46,255,160,.55);}
+    80%  {border-color:#2ec4ff; box-shadow:0 0 6px #2ec4ff, 0 0 16px #2ec4ff, 0 0 30px #2ec4ff, inset 0 0 12px rgba(46,196,255,.55);}
+    100% {border-color:#ff2e6e; box-shadow:0 0 6px #ff2e6e, 0 0 16px #ff2e6e, 0 0 30px #ff2e6e, inset 0 0 12px rgba(255,46,110,.55);}
+  }
+  body.stage2 #board-frame{
+    background:linear-gradient(180deg,#10101c,#0a0a14);
+    border:3px solid #ff2e6e;
+    border-radius:14px;
+    animation:neon-cycle 5s linear infinite;
+  }
+  body.stage2 #board-frame::before,
+  body.stage2 #board-frame::after{
+    display:none;
+  }
+  /* ステージ2: HUDボックスもネオン管に */
+  body.stage2 .hud-box{
+    background:linear-gradient(180deg,#10101c,#0a0a14);
+    border:2px solid #ff2e6e;
+    animation:neon-cycle 5s linear infinite;
+  }
+  body.stage2 .hud-box:nth-child(1){ animation-delay:0s; }
+  body.stage2 .hud-box:nth-child(2){ animation-delay:-1.6s; }
+  body.stage2 .hud-box:nth-child(3){ animation-delay:-3.2s; }
+
+  /* ステージ3: 花の背景 */
+  body.stage3{
+    background:linear-gradient(180deg,#0a1a0a 0%,#001408 60%,#0a0a1a 100%);
+  }
+  /* ステージ3: 周回レインボー光フレーム */
+  @keyframes rotate-conic{
+    to{ transform:rotate(1turn); }
+  }
+  body.stage3 #board-frame, body.stage3 .hud-box{
+    position:relative;
+    background:linear-gradient(180deg,#0d160d,#081008);
+    border:2px solid transparent;
+    z-index:0;
+    overflow:hidden;
+  }
+  body.stage3 #board-frame{ border-radius:14px; }
+  /* 周回する光の帯 */
+  body.stage3 #board-frame::before,
+  body.stage3 .hud-box::before{
+    content:"";
+    position:absolute;
+    z-index:-2;
+    left:-50%; top:-50%;
+    width:200%; height:200%;
+    background:conic-gradient(from 0deg,
+      #ff004c, #ff7a00, #ffe600, #00ff95, #00c8ff, #b400ff,
+      #ff004c, #ff7a00, #ffe600, #00ff95, #00c8ff, #b400ff, #ff004c);
+    animation:rotate-conic 1.1s linear infinite;
+  }
+  /* メインフレームはさらに速く周回感を強調 */
+  body.stage3 #board-frame::before{
+    animation:rotate-conic 0.9s linear infinite;
+  }
+  /* 内側を塗りつぶして枠だけ光らせる */
+  body.stage3 #board-frame::after,
+  body.stage3 .hud-box::after{
+    content:"";
+    position:absolute;
+    z-index:-1;
+    inset:3px;
+    background:linear-gradient(180deg,#0d160d,#081008);
+    border-radius:11px;
+  }
+  body.stage3 .hud-box::after{ border-radius:5px; inset:2px; }
+  body.stage3 .hud-box{ border:none; }
+
+  /* ステージ選択 */
+  .stage-select{display:flex;gap:6px;justify-content:center;width:100%;margin:6px 0;box-sizing:border-box;}
+  .stage-btn{
+    flex:1;min-width:0;
+    box-sizing:border-box;
+    background:rgba(255,255,255,.07);
+    border:2px solid rgba(255,255,255,.18);
+    border-radius:9px;padding:7px 3px;
+    color:#fff;font-family:inherit;font-size:10px;font-weight:700;
+    cursor:pointer;text-align:center;line-height:1.35;
+    transition:border-color .2s, background .2s;
+    touch-action:manipulation;
+  }
+  .stage-btn:active{transform:scale(.96);}
+  .stage-btn.selected{border-color:#37a7e0;background:rgba(55,167,224,.18);}
+  .stage-btn .stage-icon{font-size:18px;display:block;margin-bottom:2px;}
+  .stage-btn small{font-size:8.5px;}
+
+  @keyframes rainbow-text{
+    0%  {color:#ff4e4e;}
+    16% {color:#ffaa00;}
+    33% {color:#ffe600;}
+    50% {color:#4dff91;}
+    66% {color:#38d4ff;}
+    83% {color:#b56bff;}
+    100%{color:#ff4e4e;}
+  }
+  @keyframes rainbow-border{
+    0%  {border-color:#ff4e4e;box-shadow:0 0 14px #ff4e4e99;}
+    16% {border-color:#ffaa00;box-shadow:0 0 14px #ffaa0099;}
+    33% {border-color:#ffe600;box-shadow:0 0 14px #ffe60099;}
+    50% {border-color:#4dff91;box-shadow:0 0 14px #4dff9199;}
+    66% {border-color:#38d4ff;box-shadow:0 0 14px #38d4ff99;}
+    83% {border-color:#b56bff;box-shadow:0 0 14px #b56bff99;}
+    100%{border-color:#ff4e4e;box-shadow:0 0 14px #ff4e4e99;}
+  }
+  .rainbow-box{
+    width:100%;padding:8px 14px;border-radius:10px;
+    border:2.5px solid #ff4e4e;box-sizing:border-box;
+    background:rgba(0,0,0,.6);text-align:center;
+    animation:rainbow-border 2s linear infinite;
+  }
+  .rainbow-en{
+    font-size:14px;font-weight:900;letter-spacing:.07em;
+    animation:rainbow-text 2s linear infinite;
+    text-shadow:0 0 10px currentColor;
+    line-height:1.35;
+  }
+  .rainbow-ja{
+    font-size:11.5px;color:#f0f0f0;margin-top:3px;
+    letter-spacing:.14em;font-weight:700;
+    text-shadow:0 1px 5px rgba(0,0,0,.9);
+  }
+  @media (max-width:420px){
+    .pad{grid-template-columns:repeat(3,42px);grid-template-rows:repeat(2,38px);}
+    .act button{width:92px;height:38px;}
+  }
+</style>
+</head>
+<body>
+<canvas id="bg-canvas"></canvas>
+<header>
+  <div class="logo">ポンプで<span class="pon">ポン</span></div>
+  <div class="logo-sub">CHEMICAL PUMP<br>ACTION PUZZLE</div>
+</header>
+
+<div id="game-wrap">
+  <div id="hud">
+    <div class="hud-box"><div class="hud-label">SCORE</div><div class="hud-value" id="hud-score">0</div></div>
+    <div class="hud-box" id="hud-chain"><div class="hud-label">MAX CHAIN</div><div class="hud-value" id="hud-maxchain">-</div></div>
+    <div class="hud-box"><div class="hud-label">SPEED LV</div><div class="hud-value" id="hud-level">1</div></div>
+  </div>
+
+  <div id="stage">
+    <div id="board-frame">
+      <canvas id="cv"></canvas>
+      <div id="overlay">
+        <h2>ポンプでポン</h2>
+        <p>
+          同じ製品パネルをタテ・ヨコに3枚以上<br>
+          揃えて消そう。天井まで積むとゲームオーバー!
+        </p>
+        <div class="stage-select">
+          <button class="stage-btn selected" data-stage="1"><span class="stage-icon">🔧</span>STAGE 1<br><small style="color:#8aa0b5">ノーマル</small></button>
+          <button class="stage-btn" data-stage="2"><span class="stage-icon">🌈</span>STAGE 2<br><small style="color:#8aa0b5">レインボー</small></button>
+          <button class="stage-btn" data-stage="3"><span class="stage-icon">🌸</span>STAGE 3<br><small style="color:#8aa0b5">フラワー</small></button>
+        </div>
+        <button class="btn-main" id="bt-start">運転開始</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="controls">
+    <div class="pad">
+      <button id="bt-up">▲</button>
+      <button id="bt-left">◀</button>
+      <button id="bt-down">▼</button>
+      <button id="bt-right">▶</button>
+    </div>
+    <div class="act">
+      <button id="bt-swap">入替 (SWAP)</button>
+      <button id="bt-raise">せり上げ</button>
+    </div>
+  </div>
+
+  <div id="legend">
+    <h3>PANEL LINE-UP / 登場製品</h3>
+    <div class="legend-grid" id="legend-grid"></div>
+  </div>
+
+  <div id="howto">
+    <b>キーボード操作:</b> <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> カーソル移動 /
+    <kbd>Space</kbd> or <kbd>Z</kbd> 入替 / <kbd>X</kbd> or <kbd>Shift</kbd> せり上げ(長押し)<br>
+    <b>タッチ操作:</b> 盤面タップでカーソル移動、同じ場所をもう一度タップで入替。<br>
+    <b>連鎖:</b> パネルが消えて落ちた先でさらに揃うと連鎖!得点が大きく伸びる。4枚以上同時消しのコンボもボーナス。
+  </div>
+</div>
+
+<script>
+"use strict";
+/* ================= 基本定数 ================= */
+const COLS = 6, ROWS = 12;
+const FLASH_MS = 520;      // マッチ点滅時間
+const POP_STAGGER = 90;    // 1枚ずつ弾ける間隔
+const FALL_INT = 45;       // 落下1マスあたりms
+const SWAP_MS = 70;
+const BASE_RISE = 1/13000; // 1マスせり上がるのに約13秒(初期)
+
+/* 製品ラインナップ(実機写真パネル版) */
+const SERIES = [
+  {key:"MDM", name:"MDMシリーズ", sub:"マグネットポンプ(大型)",      color:"#1976d2", dark:"#0d4f93", img:"data:image/jpeg;base64,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"},
+  {key:"MD",  name:"MDシリーズ",  sub:"小型マグネットポンプ(金属)",   color:"#f5b50a", dark:"#b37c00", img:"data:image/jpeg;base64,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"},
+  {key:"EHN", name:"EHNシリーズ", sub:"電磁定量ポンプ",              color:"#d23c3c", dark:"#8c2424", img:"data:image/jpeg;base64,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"},
+  {key:"IX",  name:"IXシリーズ",  sub:"ハイテクノ定量ポンプ",         color:"#6a5acd", dark:"#473c8f", img:"data:image/jpeg;base64,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"},
+  {key:"TC",  name:"TCシリーズ",  sub:"エア駆動ダイヤフラム(SUS)",    color:"#ef6c00", dark:"#a34a00", img:"data:image/jpeg;base64,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"},
+  {key:"LK",  name:"LKシリーズ",  sub:"往復動定量ポンプ",             color:"#2e7d32", dark:"#1b4d1f", img:"data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBUODAsLDBkSEw8VHhsgHx4bHR0hJTApISMtJB0dKjkqLTEzNjY2ICg7Pzo0PjA1NjP/2wBDAQkJCQwLDBgODhgzIh0iMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzMzP/wAARCACgAKADASIAAhEBAxEB/8QAHAABAAMBAQEBAQAAAAAAAAAAAAUGBwQDCAIB/8QAPBAAAQMDAwEGBAQEAwkAAAAAAQACAwQFEQYSITEHEyJBUXEUYYGhFSORwTKx0fBSgqIIFiU2QlRjkuH/xAAYAQEAAwEAAAAAAAAAAAAAAAAAAQIDBP/EACARAQEAAgMBAAIDAAAAAAAAAAABAhEDEiExMkETQlH/2gAMAwEAAhEDEQA/AN/REQEREBERAREQfxzg0EuIAHUlcT7xbozh1bBn5PB/koDXDRV0sFtkNT3NTuyKeoMJLhjGXDnHU488BZNcOz00znTPvd07ouG2Mzk4B+ZHKM88+rdP94LVnHxsX3X9/HbX/wB7EPclfPc+laOADfVXB+fM1H/xSBsEmm3sd3s4FXCCGyTCQEZ9hg8/dGX87fYK2lqTiCoikPox4JXQsI0ZYYLfXPrYq+5SsowJu5dVluQDzjA59it1jeJI2vb/AAuAI+qNsM+0fpERFxERAREQEREBERAREQEREFS11LSw01CKyV0UUsr4tzch2XMPQjkHrz5KhR2622i2yR299ZI2d7X5nldKTjzGei1TUrd1gqQehDR/qCgKm00ht0H5IHGNzpCfL3UXt/WM8sJlbus0r6yLcxjmyt68ujOP1XhV1Ej3xiWXvNjA0cnwtxx1U3eaKOAPc3Zlzmjwk8dVE1h31G7JPgaP9ISTKfk5OSTG6ju0zdbfFNXRyVsDXPpHtG5+Mn05WrRajtVFFT0tRVBkohYSNpOPCPT3WFUVbUw6lighlfE3uS8vYcHO4Afuph888kclUXl1VE8udIeSQeqbXwz6TxudJXU1dGZKWdkrBwS09F0LE7ferhTtbNBUuY/dgloHiAx1/VbUwksBPUhS6OPk7v0iIjQREQEREBERAREQctRcaOkk7uoqYo3lu7a52Dj19lxHVNgHW80Ax/52/wBV+rhYqe41gqZJJWyCIxYaRjGc/qsn152e2+wWyS5U1TUyycuLJNuOoHkPmtMMccrq1W2xo161BZquzzxwXSjke4tw1szST4gvCSvt81LSwx11PJJ0EbZWlx49MrEtMW38VlqGynumxUzpQW85IIGOfdW2n09HaTbrxBUvdMdxDHxt2jjH7q+WGOF1tnlnr67dSObs2tBGC3qQfVVt2SclSNzrZqmTEpbjjgNwo7zWOV3XJnZctoyj/wCaw3B5pwQfZxVii2x1wDx+XKNrvn5L30vpmnut+p6yrYXRF/c7Q8jIALj0+e1T0vZvdzLujrKXaHuI3Pd/Dk7fL0wqetJhbJYrMcJpgYXdGSuGfUcLdIXtkhY9hy1zQQfUYWZHR18dUPEkLHhr8hweACOOnyV90/R1dBZoKaum72dmcnjgZ4H0GFZrwyy3cSaIiOgREQEREBERAREQFTO1RrR2eXabaO8ihJY4jO0/2Arms57SZN9BcIJpHfDOgiYWF2G+J3PyzhTj9Gddjz3VultT1NSe9mhZCyN7hyxrt24D5HA/RXOud/wO2j0a79lSdOsitjpKa3uMUdSyN0scTuJOOMgdequtwhnZa6KN1PMHRtIcDG7j7KcpZl65+aK3VH8z6LnHK9KiVjpeHt6eoSKGSV2I2OkI/wAA3fyVHJpb9EyD8QoYB172SQ/+oAWpBZfouiqo7/TyyU8rWBruXMIxwtQUu3g/ERERsIiICIiAiIgIiICIiAsi/wBoGJ0mj6WQSgMhn3PiyfEDgA/TP3Wiajv0NhomTSNL3yPDWsaRnHmfoP2Xzzq+s1NeXXalq6qquVFNEPg2hrQGP3tcePLhvzV8cb9Rt59hcsLe0ATSVcNM34V7BFK/mbIGA3y4xk5wvo26X2326WGmqp9j6hrtnGRjHUnyC+V71pSC3W+iqrYZjI2maapjn4LZSBu+mc9PJdujNW1dRUi0VFTKZjGW0sj3cj1iP3wosv7RnbJuLBfIKK4SwO3NOI2g4BzkDp6qZ09davS1guFTZY4ZbhO+NrIpg5/Hi5IBB64/VQ9A+OorHQVL3teHbQ0df7/qpCrbHRQPkiL8geEud4ifoq9dVyY2y7WTs57StT6s1bPabnaaeGmp4HGaWKN7Sx4OADk8Z5468LXF8/WkywML31Ejp5XF0jnO815ah1zqS1QQOivtZADC4RUUNIx7st4/iLScAcnKnW7p04cnbx9DIqN2ZarrtSWLbdpKaS4Rsa8yQcCRjuhLfJ3BBCvKWaaCIigEREBERAREQEREGY9plQW3eghc2Ta6I7MN4znnn6KkkZC0LtKpHtdR1zQTHgxPI8j1H7rOzKCOnHqurj/Fll9eUkBqPyQwv7zw7QOuVn9PcJtO6gqKiCKMPG0HdHkZDvFz68HkLRY6ySjnZUQSOjlYctePLyWYywzXvU0kcZLu8lDcAceI/sFHInD561mrbBNdYatjA1zzuIHzBUSyvlqnFkzOkrctIGGjdwM+eV0tdL+JFz9rIYnEAO64AwCv5Wd5VTmhoaV89TIzvI2xAZec9B8/Nc/u455r2O4hpdJ5HcST9OFVdb0tVW1Nsio6eeolc2QCOFrySTt/wj+asr3yW1wjurH0VaWGR0MzcOLcnBA8x1HHop7s41R8Le5bZURltNVECGbB4eM43H55/VJL9Ww8y9dvYzom4aao62vucb4JqprGMheeWtBJJI8sk/ZaqiJbv11CIigEREBERAREQEREHNXUNNcqR9LVxiSF+MtPyOVgXaLom4aYp7xfBdS+nkZiliYXAxHe0k+g44HuvoZZt2yxis0jLStoqiseAXCOHo1xBDXnkdD7q2NqGU2F41k+0Wiz1kgr5qN3xpqYztZI0cu3DqCtT0f2P2ywsMlxeK2dzSHdQCXDBJPr7dFlvYjRVlq13HNVxVFNC+me12R4ZCSA0EZ9efovp5TcsvlNRSqnszsjyHUjqimdjBzK6VuPZxP6rno+zSKirI6mK71DZI/4HNYGub7EFX1FXdR0x/xFyWC31ccQuFNDXTRt2iaoia55HvhfumsNqo3bqe300ZznLYx1UiihOoIiIkREQEREBERAREQERcdbdaG34+LqooiegceT9EHYqdr+DudP3C5Ow6KGm8bRw7g54U7R6js9wqfhqW4U8k+MiLdhx9geSoPtOlc3QNziaAe/jMZJPTI6q2Mu0bZ/2VubqmslrKQhkdE6PvDJncc5IwP8q3BYd2A08lrlutE8skE8bJQ9uRjaSMY/zfZbime9+n0REVUiIiAiIgIiICIiAiIgIiIOS51gt9tnq3DPdsJA9T5fdYxR1lyrKm5SXRshm+JzFKQA1zCPLz4/davq1rnaaq9v/TtJ9g4LILxNWR2uoNBn4nb4MNyfngeZwt+GeMs77pz3KaJ1zpaR72wvkBdFUFxaWPHQDHOScD6hTmpNXvr9Cx2utjfLdZRhzosObgdHOPkfkoW1tqp7ZSS3KFrKzYDIC0Za7z9l0WvTtTqK+VFHTSsi2MEj3PJAxwPL3Wt6+W/pWb+RK9j0L47xWbmkYpefq4LY1X9K6Wp9M0ckbH97USkGWUjGcdAPkrAubky7ZbbYzUERFRIiIgIiICIiAiIgIiICIiDyqYGVVNJBKMskaWuHyKxM2Ku09W1tFWubIHVBlhkwcuYR6/3zlbiuWuttHcohFVwMlaORu6j2PUK+GfVXLHbD6ionhu9HG6N5opGuEj2M3bXYOMnyHT7rROz+xzUcVXc6qMskq8CNpHIYP6/sp6k0xaKOUSx0bXPBy0yEvx7ZUwBhWz5O3kRjjoREWS4iIgIiICIiAiIgIiIP/9k="},
+];
+const NTYPE = SERIES.length;
+/* 写真のプリロード */
+const PHOTO_IMGS = SERIES.map(s=>{ const i=new Image(); i.src=s.img; return i; });
+
+/* ================= 状態 ================= */
+let board, nextRow;
+let currentStage = 1; // 1=ノーマル 2=レインボー 3=フラワー            // board[r][c] r=0が最下段
+let cursorX, cursorY;
+let riseOffset, riseSpeed, raiseHeld;
+let chainCount, maxChain, score, level, elapsed;
+let fallTimer, settledCalm;
+let swapAnim;                  // {x,y,t}
+let floats;                    // 浮遊テキスト
+let running=false, over=false;
+let shake=0;
+
+/* ================= DOM ================= */
+const cv = document.getElementById("cv");
+const ctx = cv.getContext("2d");
+const overlay = document.getElementById("overlay");
+const hudScore = document.getElementById("hud-score");
+const hudMax = document.getElementById("hud-maxchain");
+const hudLevel = document.getElementById("hud-level");
+
+let CELL = 44, DPR = 1;
+function layout(){
+  const wrapW = Math.min(document.getElementById("game-wrap").clientWidth - 8, 560);
+  // ヘッダー+HUD+操作ボタン+余白ぶんを差し引いた高さを盤面に全部使う
+  const hdr = document.querySelector("header");
+  const hud = document.getElementById("hud");
+  const ctrl = document.getElementById("controls");
+  const reserved =
+    (hdr ? hdr.offsetHeight : 45) +
+    (hud ? hud.offsetHeight : 50) +
+    (ctrl ? ctrl.offsetHeight : 95) + 52; // フレーム枠+マージン
+  const availH = Math.max(300, window.innerHeight - reserved);
+  CELL = Math.floor(Math.min(wrapW/COLS, availH/ROWS));
+  CELL = Math.max(30, Math.min(96, CELL));
+  DPR = window.devicePixelRatio || 1;
+  cv.width = COLS*CELL*DPR;
+  cv.height = ROWS*CELL*DPR;
+  cv.style.width = COLS*CELL+"px";
+  cv.style.height = ROWS*CELL+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+}
+window.addEventListener("resize", layout);
+layout();
+
+/* ================= サウンド(WebAudio簡易) ================= */
+let AC=null;
+function audio(){
+  if(!AC){ try{AC=new (window.AudioContext||window.webkitAudioContext)();}catch(e){} }
+  if(AC && AC.state==="suspended"){ AC.resume(); }
+  return AC;
+}
+function beep(freq, dur=0.07, type="square", vol=0.05){
+  const ac=audio(); if(!ac) return;
+  const o=ac.createOscillator(), g=ac.createGain();
+  o.type=type; o.frequency.value=freq;
+  g.gain.setValueAtTime(vol, ac.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime+dur);
+  o.connect(g).connect(ac.destination);
+  o.start(); o.stop(ac.currentTime+dur);
+}
+function sndSwap(){ beep(420,0.05,"square",0.04); }
+function sndPop(i,chain){ beep(560 + i*60 + (chain-1)*120, 0.09, "triangle", 0.07); }
+function sndRise(){ beep(180,0.04,"sawtooth",0.025); }
+function sndOver(){ beep(220,0.4,"sawtooth",0.08); setTimeout(()=>beep(150,0.6,"sawtooth",0.08),250); }
+
+/* ================= 盤面生成 ================= */
+function cell(t){ return {t, st:"idle", timer:0, popDelay:0, chain:false}; }
+
+function pickType(avoid){
+  let t;
+  do{ t = (Math.random()*NTYPE)|0; }while(avoid.has(t));
+  return t;
+}
+function genRow(){
+  const row = new Array(COLS).fill(null);
+  for(let c=0;c<COLS;c++){
+    const avoid = new Set();
+    // 横3連を避ける
+    if(c>=2 && row[c-1] && row[c-2] && row[c-1].t===row[c-2].t) avoid.add(row[c-1].t);
+    // 縦3連を避ける(現在の下2段=せり上がり後に真上に来る段)
+    if(board && board[0][c] && board[1][c] && board[0][c].t===board[1][c].t) avoid.add(board[0][c].t);
+    if(avoid.size>=NTYPE) avoid.clear();
+    row[c]=cell(pickType(avoid));
+  }
+  return row;
+}
+function initBoard(){
+  board = Array.from({length:ROWS},()=>new Array(COLS).fill(null));
+  // 初期の山(列ごとに高さ4〜6)
+  const h=[];
+  for(let c=0;c<COLS;c++) h[c] = 4 + ((Math.random()*3)|0);
+  for(let c=0;c<COLS;c++){
+    for(let r=0;r<h[c];r++){
+      const avoid=new Set();
+      if(c>=2 && board[r][c-1] && board[r][c-2] && board[r][c-1].t===board[r][c-2].t) avoid.add(board[r][c-1].t);
+      if(r>=2 && board[r-1][c] && board[r-2][c] && board[r-1][c].t===board[r-2][c].t) avoid.add(board[r-1][c].t);
+      if(avoid.size>=NTYPE) avoid.clear();
+      board[r][c]=cell(pickType(avoid));
+    }
+  }
+  nextRow = genRow();
+}
+
+/* ================= ゲーム開始/終了 ================= */
+function startGame(){
+  document.body.className = currentStage===2 ? 'stage2' : currentStage===3 ? 'stage3' : '';
+  startBgEffect(currentStage);
+  initBoard();
+  cursorX=2; cursorY=4;
+  riseOffset=0; raiseHeld=false;
+  chainCount=0; maxChain=0; score=0; level=1; elapsed=0;
+  fallTimer=0; swapAnim=null; floats=[]; shake=0;
+  popFx=[];
+  running=true; over=false;
+  overlay.classList.add("hidden");
+  updateHUD();
+  audio();
+}
+const GOOD_WORDS = [
+  {en:"HAVE A NICE DAY!!", ja:"〜良い1日を〜"},
+  {en:"KEEP UP THE GREAT WORK!", ja:"〜その調子で頑張ろう！〜"},
+  {en:"EVERY DAY IS A NEW CHANCE!", ja:"〜毎日が新しいチャンス〜"},
+  {en:"YOU ARE DOING AMAZING!", ja:"〜あなたは素晴らしい！〜"},
+  {en:"SMILE AND THE WORLD SMILES WITH YOU!", ja:"〜笑顔は世界を明るくする〜"},
+  {en:"BELIEVE IN YOURSELF!", ja:"〜自分を信じて〜"},
+  {en:"ONE MORE TRY, ONE STEP FORWARD!", ja:"〜もう一歩、前へ〜"},
+  {en:"TODAY'S EFFORT SHAPES TOMORROW!", ja:"〜今日の努力が明日をつくる〜"},
+  {en:"ENJOY THE JOURNEY!", ja:"〜プロセスを楽しもう〜"},
+  {en:"YOU'VE GOT THIS!", ja:"〜きっとうまくいく！〜"},
+];
+
+function gameOver(){
+  over=true; running=false;
+  sndOver();
+  shake=14;
+  setTimeout(()=>{
+    const w = GOOD_WORDS[(Math.random()*GOOD_WORDS.length)|0];
+    overlay.innerHTML =
+      '<div class="rainbow-box">'+
+      '<div class="rainbow-en">'+w.en+'</div>'+
+      '<div class="rainbow-ja">'+w.ja+'</div>'+
+      '</div>'+
+      '<h2 style="color:#ff7a6b;margin-top:4px">ポンプ停止…</h2>'+
+      '<div class="final-score">'+score.toLocaleString()+' <span style="font-size:13px;color:#8aa0b5">PTS</span></div>'+
+      '<p>最大連鎖: <b style="color:#f5b50a">'+(maxChain>=2? maxChain+"連鎖" : "-")+'</b> / Lv.'+level+'</p>'+
+      '<button class="btn-main" id="bt-retry">再運転</button>'+
+      '<div id="bt-stage" style="margin-top:4px;font-size:11px;color:#8aa0b5;cursor:pointer;letter-spacing:.08em;">← ステージ選択に戻る</div>';
+    overlay.classList.remove("hidden");
+    document.getElementById("bt-retry").addEventListener("click", startGame);
+    document.getElementById("bt-stage").addEventListener("click", ()=>{
+      stopBgEffect();
+      document.body.className='';
+      showTitle();
+    });
+  }, 700);
+}
+
+/* ================= 入替 ================= */
+function trySwap(){
+  if(!running) return;
+  const a=board[cursorY][cursorX], b=board[cursorY][cursorX+1];
+  if(a && a.st!=="idle") return;
+  if(b && b.st!=="idle") return;
+  if(!a && !b) return;
+  board[cursorY][cursorX]=b;
+  board[cursorY][cursorX+1]=a;
+  swapAnim={x:cursorX, y:cursorY, t:0};
+  sndSwap();
+}
+
+/* ================= 落下 ================= */
+function doFallPass(){
+  let fell=false;
+  for(let r=1;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const p=board[r][c];
+      if(p && p.st==="idle" && !board[r-1][c]){
+        board[r-1][c]=p;
+        board[r][c]=null;
+        fell=true;
+      }
+    }
+  }
+  return fell;
+}
+function anyFloating(){
+  for(let r=1;r<ROWS;r++)
+    for(let c=0;c<COLS;c++)
+      if(board[r][c] && board[r][c].st==="idle" && !board[r-1][c]) return true;
+  return false;
+}
+
+/* ================= マッチ判定 ================= */
+function canMatch(r,c){
+  const p=board[r][c];
+  return p && p.st==="idle" && (r===0 || board[r-1][c]!==null);
+}
+function scanMatches(){
+  const hit = new Set();
+  // 横
+  for(let r=0;r<ROWS;r++){
+    let run=1;
+    for(let c=1;c<=COLS;c++){
+      const same = c<COLS && canMatch(r,c) && canMatch(r,c-1) && board[r][c].t===board[r][c-1].t;
+      if(same) run++;
+      else{
+        if(run>=3) for(let k=c-run;k<c;k++) hit.add(r*COLS+k);
+        run=1;
+      }
+    }
+  }
+  // 縦
+  for(let c=0;c<COLS;c++){
+    let run=1;
+    for(let r=1;r<=ROWS;r++){
+      const same = r<ROWS && canMatch(r,c) && canMatch(r-1,c) && board[r][c].t===board[r-1][c].t;
+      if(same) run++;
+      else{
+        if(run>=3) for(let k=r-run;k<r;k++) hit.add(k*COLS+c);
+        run=1;
+      }
+    }
+  }
+  return hit;
+}
+
+function handleMatches(){
+  const hit = scanMatches();
+  if(hit.size===0) return;
+
+  let chained=false, idx=0;
+  let repType=-1;
+  hit.forEach(id=>{
+    const r=(id/COLS)|0, c=id%COLS;
+    const p=board[r][c];
+    if(p.chain) chained=true;
+    if(repType<0) repType=p.t;
+  });
+  chainCount = chained ? chainCount+1 : 1;
+  maxChain = Math.max(maxChain, chainCount);
+
+  // スコア計算
+  const n=hit.size;
+  let gain = n*10;
+  if(n>=4) gain += (n-3)*20;
+  if(chainCount>=2) gain += 40*Math.pow(2, Math.min(chainCount-1,8));
+  gain = Math.round(gain * (1 + (level-1)*0.1));
+  score += gain;
+
+  // セルをマッチ状態へ
+  const ids=[...hit].sort((a,b)=>{
+    const ra=(a/COLS)|0, ca=a%COLS, rb=(b/COLS)|0, cb=b%COLS;
+    return (rb-ra)||(ca-cb); // 上の段から順に弾ける
+  });
+  ids.forEach((id,i)=>{
+    const r=(id/COLS)|0, c=id%COLS;
+    const p=board[r][c];
+    p.st="match"; p.timer=0; p.popDelay=i*POP_STAGGER;
+  });
+
+  // 浮遊テキスト
+  const s=SERIES[repType];
+  let label = s.key;
+  if(chainCount>=2) label = chainCount+"連鎖!! +"+gain;
+  else if(n>=4)     label = n+"コンボ! +"+gain;
+  else              label = "+"+gain;
+  const r0=(ids[0]/COLS)|0, c0=ids[0]%COLS;
+  floats.push({
+    x:(c0+0.5)*CELL, y:(ROWS-1-r0)*CELL,
+    text:label, t:0,
+    color: chainCount>=2 ? "#ffd54a" : "#ffffff",
+    big: chainCount>=2 || n>=4
+  });
+  updateHUD();
+}
+
+function progressPops(dt){
+  let popIdx=0;
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const p=board[r][c];
+      if(!p || p.st!=="match") continue;
+      p.timer += dt;
+      if(p.timer >= FLASH_MS + p.popDelay){
+        // 消滅。上にあるパネルへ連鎖フラグ
+        for(let rr=r+1;rr<ROWS;rr++){
+          const q=board[rr][c];
+          if(q && q.st==="idle") q.chain=true;
+        }
+        // ステージ別の消去エフェクト発生
+        spawnPopFx(c, r, p.t);
+        board[r][c]=null;
+        sndPop(popIdx++, chainCount);
+      }
+    }
+  }
+}
+
+/* ===== 消去エフェクト(ステージ別) ===== */
+let popFx = [];
+function spawnPopFx(c, r, type){
+  const cx=(c+0.5)*CELL;
+  const cy=(ROWS-1-r)*CELL - riseOffset*CELL + CELL*0.5;
+  if(currentStage===2){
+    // 虹色の粒子が大量に弾け飛ぶ
+    const n=18;
+    for(let i=0;i<n;i++){
+      const ang=(Math.PI*2/n)*i + Math.random()*0.5;
+      const sp=Math.random()*3.6+1.8;
+      popFx.push({
+        kind:2, x:cx, y:cy,
+        vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp,
+        r:Math.random()*4+2.5, hue:Math.random()*360,
+        life:0, max:620
+      });
+    }
+    // 二重リング
+    const baseHue=Math.random()*360;
+    popFx.push({kind:"ring", x:cx, y:cy, r:CELL*0.15, life:0, max:420, hue:baseHue, sp:0.26});
+    popFx.push({kind:"ring", x:cx, y:cy, r:CELL*0.1,  life:0, max:520, hue:(baseHue+120)%360, sp:0.18});
+    // 中央フラッシュ
+    popFx.push({kind:"flash", x:cx, y:cy, r:CELL*0.55, life:0, max:240, hue:baseHue});
+  }else if(currentStage===3){
+    // 花びらが舞い散る
+    const PETAL=["#ffb7c5","#ffe600","#ff6eb4","#fff176","#b39ddb","#ff8a65"];
+    const n=7;
+    for(let i=0;i<n;i++){
+      const ang=Math.random()*Math.PI*2;
+      const sp=Math.random()*1.8+0.6;
+      popFx.push({
+        kind:3, x:cx, y:cy,
+        vx:Math.cos(ang)*sp, vy:Math.sin(ang)*sp - 0.6,
+        r:Math.random()*4+3, color:PETAL[(Math.random()*PETAL.length)|0],
+        rot:Math.random()*Math.PI*2, vrot:(Math.random()-.5)*0.2,
+        life:0, max:700
+      });
+    }
+  }
+}
+function updatePopFx(dt){
+  for(const f of popFx){
+    f.life+=dt;
+    if(f.kind==="ring"){ f.r += dt*(f.sp||0.18); continue; }
+    if(f.kind==="flash"){ continue; }
+    f.x+=f.vx; f.y+=f.vy;
+    if(f.kind===2){ f.vx*=0.96; f.vy*=0.96; }
+    if(f.kind===3){ f.vy+=0.04; f.vx*=0.98; f.rot+=f.vrot; }
+  }
+  popFx = popFx.filter(f=>f.life<f.max);
+}
+function drawPopFx(){
+  for(const f of popFx){
+    const t=f.life/f.max;
+    const a=1-t;
+    if(f.kind==="flash"){
+      ctx.save();
+      ctx.globalAlpha=a*0.7;
+      const grd=ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r);
+      grd.addColorStop(0,'hsla('+f.hue+',100%,92%,'+(a*0.9)+')');
+      grd.addColorStop(0.5,'hsla('+f.hue+',100%,70%,'+(a*0.4)+')');
+      grd.addColorStop(1,'hsla('+f.hue+',100%,60%,0)');
+      ctx.fillStyle=grd;
+      ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }else if(f.kind==="ring"){
+      ctx.save();
+      ctx.globalAlpha=a*0.9;
+      ctx.strokeStyle='hsl('+f.hue+',100%,72%)';
+      ctx.lineWidth=4*a+0.5;
+      ctx.shadowColor='hsl('+f.hue+',100%,65%)';
+      ctx.shadowBlur=8*a;
+      ctx.beginPath(); ctx.arc(f.x,f.y,f.r,0,Math.PI*2); ctx.stroke();
+      ctx.restore();
+    }else if(f.kind===2){
+      ctx.save();
+      ctx.globalAlpha=a;
+      const grd=ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r*3);
+      grd.addColorStop(0,'hsla('+f.hue+',100%,85%,'+a+')');
+      grd.addColorStop(0.5,'hsla('+f.hue+',100%,65%,'+(a*0.7)+')');
+      grd.addColorStop(1,'hsla('+f.hue+',100%,60%,0)');
+      ctx.fillStyle=grd;
+      ctx.beginPath(); ctx.arc(f.x,f.y,f.r*3,0,Math.PI*2); ctx.fill();
+      ctx.restore();
+    }else if(f.kind===3){
+      ctx.save();
+      ctx.globalAlpha=a;
+      ctx.translate(f.x,f.y);
+      ctx.rotate(f.rot);
+      ctx.fillStyle=f.color;
+      ctx.beginPath();
+      ctx.ellipse(0,0,f.r,f.r*0.45,0,0,Math.PI*2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+function anyActive(){
+  for(let r=0;r<ROWS;r++)
+    for(let c=0;c<COLS;c++)
+      if(board[r][c] && board[r][c].st!=="idle") return true;
+  return false;
+}
+
+/* ================= せり上げ ================= */
+function riseStep(){
+  for(let c=0;c<COLS;c++){
+    if(board[ROWS-1][c]){ gameOver(); return; }
+  }
+  for(let r=ROWS-1;r>=1;r--) board[r]=board[r-1];
+  board[0]=nextRow;
+  nextRow=genRow();
+  cursorY=Math.min(cursorY+1, ROWS-1);
+  score+=2;
+  sndRise();
+}
+
+/* ================= メインループ ================= */
+let lastT=performance.now();
+function loop(now){
+  const dt=Math.min(50, now-lastT);
+  lastT=now;
+  if(running){
+    update(dt);
+  }
+  render(now);
+  requestAnimationFrame(loop);
+}
+function update(dt){
+  elapsed += dt;
+  level = 1 + Math.floor(elapsed/45000);
+  hudLevel.textContent = level;
+  riseSpeed = BASE_RISE * (1 + (level-1)*0.45);
+
+  if(swapAnim){ swapAnim.t+=dt; if(swapAnim.t>=SWAP_MS) swapAnim=null; }
+
+  // 落下
+  fallTimer+=dt;
+  let fellNow=false;
+  while(fallTimer>=FALL_INT){
+    fallTimer-=FALL_INT;
+    if(doFallPass()) fellNow=true;
+  }
+
+  // マッチ
+  handleMatches();
+  progressPops(dt);
+
+  const active = anyActive();
+  const floating = anyFloating();
+
+  // 盤面が完全に静止したら連鎖カウントとフラグをリセット
+  if(!active && !floating && !fellNow){
+    if(chainCount>0){
+      chainCount=0;
+      for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++){
+        const p=board[r][c]; if(p) p.chain=false;
+      }
+    }
+  }
+
+  // せり上げ(消滅演出中は停止)
+  if(!active){
+    const sp = riseSpeed * (raiseHeld ? 22 : 1);
+    riseOffset += dt*sp;
+    while(riseOffset>=1){
+      riseOffset-=1;
+      riseStep();
+      if(over) return;
+    }
+  }
+
+  // 浮遊テキスト
+  floats.forEach(f=>f.t+=dt);
+  floats=floats.filter(f=>f.t<1100);
+
+  // 消去エフェクト更新
+  updatePopFx(dt);
+
+  if(shake>0) shake=Math.max(0,shake-dt*0.03);
+  hudScore.textContent=score.toLocaleString();
+}
+function updateHUD(){
+  hudScore.textContent=score.toLocaleString();
+  hudMax.textContent = maxChain>=2 ? maxChain+"連鎖" : "-";
+}
+
+/* ================= パネル描画 =================
+   各シリーズのアイコンは本ゲーム用に簡略化したオリジナル描画 */
+function roundRect(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+function drawIcon(t,x,y,s){
+  ctx.save();
+  ctx.translate(x,y);
+  const u=s/24; // 24px基準
+  ctx.lineWidth=Math.max(1.4, 1.8*u);
+  ctx.strokeStyle="rgba(255,255,255,.95)";
+  ctx.fillStyle="rgba(255,255,255,.95)";
+  ctx.lineJoin="round"; ctx.lineCap="round";
+  switch(t){
+    case 0: // MD マグネットポンプ: ポンプヘッド円+モータ胴+吐出口
+      ctx.beginPath(); ctx.arc(7*u,13*u,5*u,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(7*u,13*u,1.6*u,0,Math.PI*2); ctx.fill();
+      roundRectPath(11*u,9.5*u,10*u,7*u,1.5*u); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(7*u,8*u); ctx.lineTo(7*u,4.5*u); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(5*u,4.5*u); ctx.lineTo(9*u,4.5*u); ctx.stroke();
+      break;
+    case 1: // MX 渦巻ケーシング
+      ctx.beginPath(); ctx.arc(12*u,13*u,6*u,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(12*u,13*u,2.6*u,0,Math.PI*2); ctx.stroke();
+      // 接線方向の吐出
+      ctx.beginPath(); ctx.moveTo(16.8*u,9.5*u); ctx.lineTo(16.8*u,4*u); ctx.lineTo(20*u,4*u); ctx.stroke();
+      // 渦
+      ctx.beginPath(); ctx.arc(12*u,13*u,4.3*u, -0.4, 2.2); ctx.stroke();
+      break;
+    case 2: // EH 定量ポンプ: 縦型本体+調整ダイヤル
+      roundRectPath(8*u,9*u,8*u,11*u,1.5*u); ctx.stroke();
+      ctx.beginPath(); ctx.arc(12*u,6*u,3.2*u,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(12*u,6*u); ctx.lineTo(12*u,3.6*u); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(9.5*u,13*u); ctx.lineTo(14.5*u,13*u); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(9.5*u,16*u); ctx.lineTo(14.5*u,16*u); ctx.stroke();
+      break;
+    case 3: // YTS ダイヤフラム: 左右チャンバ+中央マニホールド
+      ctx.beginPath(); ctx.arc(7*u,12*u,4.4*u,0,Math.PI*2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(17*u,12*u,4.4*u,0,Math.PI*2); ctx.stroke();
+      roundRectPath(10.4*u,9.6*u,3.2*u,4.8*u,1*u); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(12*u,9.6*u); ctx.lineTo(12*u,4.6*u); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(9.4*u,4.6*u); ctx.lineTo(14.6*u,4.6*u); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(12*u,14.4*u); ctx.lineTo(12*u,19.4*u); ctx.stroke();
+      break;
+    case 4: // モータ: 胴+冷却フィン+シャフト
+      roundRectPath(5*u,8*u,12*u,9*u,2*u); ctx.stroke();
+      for(let i=0;i<3;i++){
+        ctx.beginPath();
+        ctx.moveTo((7.5+i*3.4)*u,8*u); ctx.lineTo((7.5+i*3.4)*u,5.6*u);
+        ctx.stroke();
+      }
+      ctx.beginPath(); ctx.moveTo(17*u,12.5*u); ctx.lineTo(20.5*u,12.5*u); ctx.stroke();
+      ctx.beginPath(); ctx.arc(11*u,12.5*u,2*u,0,Math.PI*2); ctx.stroke();
+      break;
+    case 5: // 継手: エルボ+フランジボルト
+      ctx.beginPath();
+      ctx.moveTo(6*u,5*u); ctx.lineTo(6*u,12*u);
+      ctx.arc(10*u,12*u,4*u,Math.PI,Math.PI/2,true);
+      ctx.lineTo(19*u,16*u);
+      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(3.5*u,5.5*u); ctx.lineTo(8.5*u,5.5*u); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(18.5*u,13.5*u); ctx.lineTo(18.5*u,18.5*u); ctx.stroke();
+      ctx.beginPath(); ctx.arc(4.6*u,5.5*u,0.8*u,0,Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(7.4*u,5.5*u,0.8*u,0,Math.PI*2); ctx.fill();
+      break;
+  }
+  ctx.restore();
+}
+function roundRectPath(x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+
+function drawPanel(p, px, py, dim, now){
+  const s=SERIES[p.t];
+  const pad=1.5;
+  const x=px+pad, y=py+pad, w=CELL-pad*2, h=CELL-pad*2;
+
+  let flash=false, white=false;
+  if(p.st==="match"){
+    if(p.timer<FLASH_MS) flash = Math.floor(p.timer/70)%2===0;
+    else white=true;
+  }
+  ctx.save();
+  ctx.globalAlpha = dim?0.38:1;
+
+  roundRect(x,y,w,h,5);
+  ctx.save(); ctx.clip();
+  const img=PHOTO_IMGS[p.t];
+  if(img.complete&&img.naturalWidth>0){
+    ctx.drawImage(img,x,y,w,h);
+  }else{
+    ctx.fillStyle=s.color; ctx.fillRect(x,y,w,h);
+  }
+  if(flash||white){
+    ctx.fillStyle=white?"rgba(255,255,255,.92)":"rgba(255,255,255,.55)";
+    ctx.fillRect(x,y,w,h);
+  }
+  const bh=Math.max(10,CELL*0.24);
+  const keepA=ctx.globalAlpha;
+  ctx.globalAlpha=keepA*0.92;
+  ctx.fillStyle=s.color; ctx.fillRect(x,y+h-bh,w,bh);
+  ctx.globalAlpha=keepA;
+  ctx.fillStyle="#fff";
+  ctx.font=`800 ${Math.max(7,bh*0.62)}px sans-serif`;
+  ctx.textAlign="center"; ctx.textBaseline="middle";
+  ctx.fillText(s.key,x+w/2,y+h-bh/2+0.5);
+  ctx.restore();
+  ctx.strokeStyle=flash||white?"#ffffff":s.color;
+  ctx.lineWidth=2;
+  roundRect(x+1,y+1,w-2,h-2,4); ctx.stroke();
+  ctx.restore();
+}
+
+/* ================= 描画 ================= */
+function render(now){
+  ctx.clearRect(0,0,COLS*CELL,ROWS*CELL);
+
+  let sx=0, sy=0;
+  if(shake>0){
+    sx=(Math.random()-0.5)*shake;
+    sy=(Math.random()-0.5)*shake;
+  }
+  ctx.save();
+  ctx.translate(sx,sy);
+
+  // 背景グリッド
+  ctx.strokeStyle="rgba(255,255,255,.04)";
+  ctx.lineWidth=1;
+  for(let c=1;c<COLS;c++){
+    ctx.beginPath(); ctx.moveTo(c*CELL,0); ctx.lineTo(c*CELL,ROWS*CELL); ctx.stroke();
+  }
+
+  // 危険ライン
+  ctx.fillStyle="rgba(255,80,60,.07)";
+  ctx.fillRect(0,0,COLS*CELL,CELL*1.5);
+
+  const yOf = r => (ROWS-1-r-riseOffset)*CELL + CELL*0 + riseOffset*0 + (0);
+  // 正:下端基準 → y(r) = (ROWS-1-r)*CELL - riseOffset*CELL + CELL*riseOffset*0
+  function rowY(r){ return (ROWS-1-r)*CELL - riseOffset*CELL + CELL; } // セル下端
+  function cellY(r){ return (ROWS-1-r)*CELL - riseOffset*CELL; }
+
+  // 本体パネル
+  for(let r=0;r<ROWS;r++){
+    for(let c=0;c<COLS;c++){
+      const p=board[r][c];
+      if(!p) continue;
+      let px=c*CELL, py=cellY(r)+CELL; // +CELLで1段分下げ(プレビュー分のオフセット)
+      py = cellY(r) + CELL*0; // 調整は下で
+      px=c*CELL; py=(ROWS-1-r)*CELL - riseOffset*CELL;
+      // 入替アニメ
+      if(swapAnim && r===swapAnim.y){
+        const prog=Math.min(1,swapAnim.t/SWAP_MS);
+        if(c===swapAnim.x)   px += (1-prog)*CELL;
+        if(c===swapAnim.x+1) px -= (1-prog)*CELL;
+      }
+      drawPanel(p, px, py, false, now);
+    }
+  }
+
+  // 次段プレビュー(暗め・下からせり上がってくる)
+  for(let c=0;c<COLS;c++){
+    const p=nextRow[c];
+    if(!p) continue;
+    const px=c*CELL, py=ROWS*CELL - riseOffset*CELL;
+    drawPanel(p, px, py, true, now);
+  }
+  // プレビューの上に薄い影
+  ctx.fillStyle="rgba(0,0,0,.25)";
+  ctx.fillRect(0, ROWS*CELL - riseOffset*CELL, COLS*CELL, riseOffset*CELL);
+
+  // カーソル
+  if(running){
+    const cx=cursorX*CELL, cy2=(ROWS-1-cursorY)*CELL - riseOffset*CELL;
+    const pulse = 1 + Math.sin(now/180)*0.6;
+    ctx.strokeStyle="#ffffff";
+    ctx.lineWidth=2.5;
+    ctx.shadowColor="rgba(255,255,255,.7)";
+    ctx.shadowBlur=4*pulse;
+    drawBracket(cx-2, cy2-2, CELL*2+4, CELL+4);
+    ctx.shadowBlur=0;
+  }
+
+  // 消去エフェクト
+  drawPopFx();
+
+  // 浮遊テキスト
+  floats.forEach(f=>{
+    const p=f.t/1100;
+    ctx.save();
+    ctx.globalAlpha = p<0.75 ? 1 : 1-(p-0.75)/0.25;
+    ctx.font=`900 ${f.big? Math.max(15,CELL*0.42) : Math.max(12,CELL*0.3)}px sans-serif`;
+    ctx.textAlign="center";
+    ctx.lineWidth=4;
+    ctx.strokeStyle="rgba(0,0,0,.65)";
+    ctx.fillStyle=f.color;
+    const yy=f.y - p*34;
+    const xx=Math.min(Math.max(f.x, CELL*1.2), COLS*CELL-CELL*1.2);
+    ctx.strokeText(f.text, xx, yy);
+    ctx.fillText(f.text, xx, yy);
+    ctx.restore();
+  });
+
+  ctx.restore();
+}
+function drawBracket(x,y,w,h){
+  const L=Math.min(11, w*0.14);
+  ctx.beginPath();
+  // 四隅のみのブラケット
+  ctx.moveTo(x,y+L); ctx.lineTo(x,y); ctx.lineTo(x+L,y);
+  ctx.moveTo(x+w-L,y); ctx.lineTo(x+w,y); ctx.lineTo(x+w,y+L);
+  ctx.moveTo(x+w,y+h-L); ctx.lineTo(x+w,y+h); ctx.lineTo(x+w-L,y+h);
+  ctx.moveTo(x+L,y+h); ctx.lineTo(x,y+h); ctx.lineTo(x,y+h-L);
+  // 中央の仕切り
+  ctx.moveTo(x+w/2, y); ctx.lineTo(x+w/2, y+4);
+  ctx.moveTo(x+w/2, y+h); ctx.lineTo(x+w/2, y+h-4);
+  ctx.stroke();
+}
+
+/* ================= 入力 ================= */
+function moveCursor(dx,dy){
+  if(!running) return;
+  cursorX=Math.max(0,Math.min(COLS-2,cursorX+dx));
+  cursorY=Math.max(0,Math.min(ROWS-1,cursorY+dy));
+}
+document.addEventListener("keydown",e=>{
+  if(e.repeat && (e.key===" "||e.key==="z"||e.key==="Z")) return;
+  switch(e.key){
+    case "ArrowLeft": moveCursor(-1,0); e.preventDefault(); break;
+    case "ArrowRight": moveCursor(1,0); e.preventDefault(); break;
+    case "ArrowUp": moveCursor(0,1); e.preventDefault(); break;
+    case "ArrowDown": moveCursor(0,-1); e.preventDefault(); break;
+    case " ": case "z": case "Z": trySwap(); e.preventDefault(); break;
+    case "x": case "X": case "Shift": raiseHeld=true; e.preventDefault(); break;
+    case "Enter":
+      if(!running && !overlay.classList.contains("hidden")){
+        const b=overlay.querySelector("button"); if(b) b.click();
+      }
+      break;
+  }
+});
+document.addEventListener("keyup",e=>{
+  if(e.key==="x"||e.key==="X"||e.key==="Shift") raiseHeld=false;
+});
+
+// ボタン
+function bindHold(id, fn){
+  const el=document.getElementById(id);
+  let iv=null;
+  const down=ev=>{ev.preventDefault(); fn(); iv=setInterval(fn,130);};
+  const up=()=>{if(iv){clearInterval(iv);iv=null;}};
+  el.addEventListener("pointerdown",down);
+  el.addEventListener("pointerup",up);
+  el.addEventListener("pointerleave",up);
+  el.addEventListener("pointercancel",up);
+}
+bindHold("bt-left", ()=>moveCursor(-1,0));
+bindHold("bt-right",()=>moveCursor(1,0));
+bindHold("bt-up",   ()=>moveCursor(0,1));
+bindHold("bt-down", ()=>moveCursor(0,-1));
+document.getElementById("bt-swap").addEventListener("pointerdown",e=>{e.preventDefault();trySwap();});
+(()=>{
+  const el=document.getElementById("bt-raise");
+  el.addEventListener("pointerdown",e=>{e.preventDefault();raiseHeld=true;});
+  ["pointerup","pointerleave","pointercancel"].forEach(ev=>el.addEventListener(ev,()=>raiseHeld=false));
+})();
+
+// 盤面タップ
+cv.addEventListener("pointerdown",e=>{
+  e.preventDefault();
+  if(!running) return;
+  const rect=cv.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  let c=Math.floor(mx/CELL), rr=ROWS-1-Math.floor((my+riseOffset*CELL)/CELL);
+  c=Math.max(0,Math.min(COLS-1,c));
+  rr=Math.max(0,Math.min(ROWS-1,rr));
+  const tx=Math.min(c, COLS-2);
+  if(tx===cursorX && rr===cursorY){
+    trySwap();
+  }else{
+    cursorX=tx; cursorY=rr;
+  }
+});
+
+/* ===== タイトル画面表示 ===== */
+function showTitle(){
+  overlay.innerHTML =
+    '<h2>ポンプでポン</h2>'+
+    '<p>同じ製品パネルをタテ・ヨコに3枚以上<br>揃えて消そう。天井まで積むとゲームオーバー!</p>'+
+    '<div class="stage-select">'+
+    '<button class="stage-btn'+(currentStage===1?' selected':'')+'" data-stage="1"><span class="stage-icon">🔧</span>STAGE 1<br><small style="color:#8aa0b5">ノーマル</small></button>'+
+    '<button class="stage-btn'+(currentStage===2?' selected':'')+'" data-stage="2"><span class="stage-icon">🌈</span>STAGE 2<br><small style="color:#8aa0b5">レインボー</small></button>'+
+    '<button class="stage-btn'+(currentStage===3?' selected':'')+'" data-stage="3"><span class="stage-icon">🌸</span>STAGE 3<br><small style="color:#8aa0b5">フラワー</small></button>'+
+    '</div>'+
+    '<button class="btn-main" id="bt-start2">運転開始</button>';
+  overlay.classList.remove("hidden");
+  bindStageButtons();
+  document.getElementById("bt-start2").addEventListener("click", startGame);
+}
+function bindStageButtons(){
+  overlay.querySelectorAll(".stage-btn").forEach(btn=>{
+    btn.addEventListener("click",()=>{
+      overlay.querySelectorAll(".stage-btn").forEach(b=>b.classList.remove("selected"));
+      btn.classList.add("selected");
+      currentStage = parseInt(btn.dataset.stage);
+    });
+  });
+}
+
+/* ===== 背景エフェクト ===== */
+const bgCv = document.getElementById("bg-canvas");
+const bgCtx = bgCv.getContext("2d");
+let bgRaf = null;
+let bgParticles = [];
+let bgStage = 0;
+
+function resizeBgCanvas(){
+  bgCv.width = window.innerWidth;
+  bgCv.height = window.innerHeight;
+}
+resizeBgCanvas();
+window.addEventListener("resize", resizeBgCanvas);
+
+/* ループ関数はトップレベルで定義(iOS WebView対応) */
+function loopBg(){
+  const W=bgCv.width, H=bgCv.height;
+  bgCtx.clearRect(0,0,W,H);
+  if(bgStage===2){
+    bgParticles.forEach(p=>{
+      p.hue=(p.hue+1.2)%360;
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.x<0)p.x=W; if(p.x>W)p.x=0;
+      if(p.y<0)p.y=H; if(p.y>H)p.y=0;
+      try{
+        const R=p.r*8;
+        const grd=bgCtx.createRadialGradient(p.x,p.y,0,p.x,p.y,R);
+        grd.addColorStop(0,'hsla('+p.hue+',100%,92%,'+Math.min(1,p.alpha+0.25)+')');
+        grd.addColorStop(0.4,'hsla('+p.hue+',100%,65%,'+p.alpha+')');
+        grd.addColorStop(1,'hsla('+p.hue+',100%,55%,0)');
+        bgCtx.beginPath();
+        bgCtx.arc(p.x,p.y,R,0,Math.PI*2);
+        bgCtx.fillStyle=grd; bgCtx.fill();
+      }catch(e){}
+    });
+  }else if(bgStage===3){
+    bgParticles.forEach(p=>{
+      p.y+=p.vy; p.x+=p.vx; p.rot+=p.vrot; p.sway+=0.02;
+      p.x += Math.sin(p.sway)*0.4;
+      if(p.y>H+30){ p.y=-30; p.x=Math.random()*W; }
+      bgCtx.save();
+      bgCtx.translate(p.x,p.y);
+      bgCtx.rotate(p.rot);
+      bgCtx.globalAlpha=p.alpha;
+      // 花びら(複数枚)
+      for(let k=0;k<p.petals;k++){
+        bgCtx.save();
+        bgCtx.rotate((Math.PI*2/p.petals)*k);
+        bgCtx.beginPath();
+        bgCtx.ellipse(0,-p.r*0.62, p.r*0.34, p.r*0.6, 0, 0, Math.PI*2);
+        bgCtx.fillStyle=p.color;
+        bgCtx.fill();
+        bgCtx.restore();
+      }
+      // 中心
+      bgCtx.beginPath();
+      bgCtx.arc(0,0,p.r*0.32,0,Math.PI*2);
+      bgCtx.fillStyle=p.center;
+      bgCtx.fill();
+      bgCtx.restore();
+    });
+  }
+  bgRaf=requestAnimationFrame(loopBg);
+}
+
+function stopBgEffect(){
+  bgStage=0;
+  if(bgRaf){ cancelAnimationFrame(bgRaf); bgRaf=null; }
+  bgCv.classList.remove("active");
+  bgParticles=[];
+}
+
+function startBgEffect(stage){
+  stopBgEffect();
+  if(stage===1) return;
+  bgStage=stage;
+  resizeBgCanvas();
+  bgCv.classList.add("active");
+  bgParticles=[];
+  const W=bgCv.width, H=bgCv.height;
+  if(stage===2){
+    for(let i=0;i<100;i++) bgParticles.push({
+      x:Math.random()*W, y:Math.random()*H,
+      r:Math.random()*7+2, hue:Math.random()*360,
+      vy:(Math.random()-.5)*0.9, vx:(Math.random()-.5)*0.9,
+      alpha:Math.random()*.6+.4
+    });
+  }else if(stage===3){
+    var FLOWER_TYPES=[
+      {color:"#ffb7c5", center:"#ffe066", petals:5},  // 桜
+      {color:"#ffe600", center:"#8b4c00", petals:12}, // ひまわり
+      {color:"#ff4466", center:"#ffcccc", petals:8},  // バラ
+      {color:"#ff6eb4", center:"#fff0f6", petals:6},  // チューリップ
+      {color:"#fff176", center:"#ffcc00", petals:14}, // タンポポ
+      {color:"#b39ddb", center:"#e1bee7", petals:5},  // アジサイ
+      {color:"#ff8a65", center:"#fff3e0", petals:7},  // コスモス
+    ];
+    for(let i=0;i<90;i++){
+      var ft=FLOWER_TYPES[Math.floor(Math.random()*FLOWER_TYPES.length)];
+      bgParticles.push({
+        x:Math.random()*W, y:Math.random()*H,
+        r:Math.random()*16+9,
+        color:ft.color, center:ft.center, petals:ft.petals,
+        vy:Math.random()*1.0+0.4, vx:(Math.random()-.5)*0.4,
+        rot:Math.random()*Math.PI*2, vrot:(Math.random()-.5)*0.025,
+        sway:Math.random()*Math.PI*2,
+        alpha:Math.random()*.45+.5
+      });
+    }
+  }
+  bgRaf=requestAnimationFrame(loopBg);
+}
+
+// ステージ選択ボタン
+document.querySelectorAll(".stage-btn").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    document.querySelectorAll(".stage-btn").forEach(b=>b.classList.remove("selected"));
+    btn.classList.add("selected");
+    currentStage = parseInt(btn.dataset.stage);
+  });
+});
+document.getElementById("bt-start").addEventListener("click", startGame);
+
+/* ================= 凡例 ================= */
+(()=>{
+  const g=document.getElementById("legend-grid");
+  SERIES.forEach(s=>{
+    const d=document.createElement("div");
+    d.className="legend-item";
+    d.innerHTML=`<img class="legend-chip" src="${s.img}" alt="${s.name}" style="border:2px solid ${s.color}">
+      <span>${s.name}<small>${s.sub}</small></span>`;
+    g.appendChild(d);
+  });
+})();
+
+/* 起動時の初期値(タイトル画面の背景描画用) */
+riseOffset=0; raiseHeld=false;
+chainCount=0; maxChain=0; score=0; level=1; elapsed=0;
+fallTimer=0; swapAnim=null; floats=[]; shake=0;
+
+/* スマホのダブルタップ拡大・ピンチ拡大を完全抑止 */
+let lastTouchEnd = 0;
+document.addEventListener("touchstart", e => {
+  if(e.touches.length > 1) e.preventDefault(); // ピンチ開始を潰す
+}, {passive:false});
+document.addEventListener("touchend", e => {
+  const now = Date.now();
+  if(now - lastTouchEnd < 350) e.preventDefault(); // ダブルタップを潰す
+  lastTouchEnd = now;
+}, {passive:false});
+document.addEventListener("touchmove", e => {
+  if(e.touches.length > 1) e.preventDefault(); // ピンチ中を潰す
+}, {passive:false});
+document.addEventListener("gesturestart", e => e.preventDefault(), {passive:false});
+document.addEventListener("gesturechange", e => e.preventDefault(), {passive:false});
+document.addEventListener("gestureend", e => e.preventDefault(), {passive:false});
+document.addEventListener("dblclick", e => e.preventDefault());
+// ページ全体のスクロール・ズームをブロック
+document.body.addEventListener("touchmove", e => e.preventDefault(), {passive:false});
+
+initBoard();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

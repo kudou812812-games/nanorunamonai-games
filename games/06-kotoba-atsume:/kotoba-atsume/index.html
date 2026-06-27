@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>ことばあつめ — Kotoba Atsume</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kosugi+Maru&family=Noto+Sans+Devanagari:wght@400;600&family=Nunito:wght@600;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FFF7EC; --paper2:#FFE9CE; --card:#FFFFFF;
+    --ink:#2B2440; --muted:#857D9B; --line:#ECE2D2;
+    --accent:#E8743B; --accent-d:#C95A26;
+    --blue:#2A6FB0; --red:#D7443E; --green:#2E9E6B; --yellow:#EAB308; --whiteb:#FBFBFD;
+    --jp:"Kosugi Maru","Hiragino Maru Gothic ProN","Hiragino Sans","Noto Sans JP",sans-serif;
+    --ne:"Noto Sans Devanagari",sans-serif;
+    --en:"Nunito",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:var(--jp); color:var(--ink);
+    background:linear-gradient(170deg,#FFF7EC 0%,#FFE9CE 55%,#FFD9C2 100%);
+    overflow:hidden; position:fixed; inset:0; display:flex; flex-direction:column;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .screen{flex:1; display:none; flex-direction:column; min-height:0}
+  .screen.on{display:flex}
+
+  /* ---------- TITLE ---------- */
+  #title{justify-content:center; align-items:center; text-align:center; padding:24px; gap:4px}
+  #title .brand{font-family:var(--en); font-size:12px; letter-spacing:3px; color:var(--accent-d); font-weight:800}
+  #title h1{font-family:var(--jp); font-size:clamp(34px,11vw,54px); color:var(--ink); line-height:1.05; margin-top:2px}
+  #title .sub{color:var(--muted); font-size:13px; margin-bottom:20px}
+  #title .sub .en{font-family:var(--en)} #title .sub .ne{font-family:var(--ne)}
+  .modes{display:flex; flex-direction:column; gap:14px; width:100%; max-width:420px}
+  .mode{display:flex; align-items:center; gap:14px; text-align:left; cursor:pointer; border:none;
+    background:var(--card); border:1px solid var(--line); border-radius:20px; padding:14px 16px;
+    box-shadow:0 8px 24px rgba(120,80,40,.10); transition:transform .07s; width:100%;}
+  .mode:active{transform:scale(.98)}
+  .btn{font-family:var(--jp); font-weight:bold; border:none; cursor:pointer;
+    background:var(--accent); color:#fff; border-radius:999px; padding:16px 48px; font-size:22px;
+    box-shadow:0 8px 0 var(--accent-d); transition:transform .06s, box-shadow .06s; margin-top:18px}
+  .btn:active{transform:translateY(5px); box-shadow:0 3px 0 var(--accent-d)}
+  .btn .small{display:block; font-family:var(--en); font-weight:600; font-size:11px; opacity:.85; margin-top:2px}
+  .mode .big{font-size:34px; flex:0 0 auto}
+  .mode .t1{font-family:var(--jp); font-size:21px; font-weight:bold}
+  .mode .lvl{font-family:var(--en); font-size:11px; font-weight:800; color:#fff; padding:2px 8px; border-radius:6px; margin-left:8px; vertical-align:middle}
+  .mode .lvl.easy{background:var(--green)} .mode .lvl.hard{background:var(--red)}
+  .mode .t2{font-size:12px; color:var(--muted); margin-top:3px}
+  .mode .t2 .en{font-family:var(--en)} .mode .t2 .ne{font-family:var(--ne)}
+
+  /* ---------- GAME ---------- */
+  #game{padding:8px 12px 12px}
+  .topbar{display:flex; align-items:center; gap:8px; margin-bottom:6px}
+  .iconbtn{flex:0 0 auto; height:38px; min-width:38px; padding:0 10px; border-radius:12px; border:1px solid var(--line);
+    background:var(--card); font-size:16px; cursor:pointer; color:var(--ink); font-family:var(--en); font-weight:800}
+  .progress{flex:1; text-align:center; font-family:var(--en); font-size:13px; color:var(--muted); font-weight:800}
+
+  .panel{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:12px 12px 10px;
+    box-shadow:0 6px 18px rgba(120,80,40,.08); margin-bottom:6px}
+  /* word slots */
+  .slots{display:flex; gap:8px; justify-content:center; flex-wrap:wrap}
+  .slot{width:46px; height:54px; border-radius:12px; border:2px dashed #D8C7AE; background:rgba(255,255,255,.6);
+    display:flex; align-items:center; justify-content:center; font-size:28px; color:#C9B89C;
+    transition:transform .15s, background .2s, color .2s, border-color .2s}
+  .slot.guide{color:#C9B89C}      /* word mode: faint guide char */
+  .slot.blank{color:transparent}  /* sentence mode: hidden until filled */
+  .slot.done{background:var(--ink); color:#fff!important; border:2px solid var(--ink); transform:scale(1.04)}
+  /* sentence line */
+  .sline{display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:center; gap:1px 0; font-size:24px; line-height:1.7}
+  .cell{font-family:var(--jp)}
+  .cell.punc{color:var(--muted)}
+  .cell.hint{color:var(--accent-d); font-weight:bold; border-bottom:2px solid #F2C9A8; padding:0 1px}
+  .bslot{display:inline-flex; align-items:center; justify-content:center; min-width:30px; height:38px; margin:0 2px;
+    border-bottom:3px solid var(--accent); color:#CDBDA2; font-size:24px; vertical-align:bottom; transition:color .2s, background .2s}
+  .bslot.done{color:#fff; background:var(--ink); border-radius:8px; border-bottom:3px solid var(--ink)}
+
+  .hint{text-align:center; font-size:13px; padding:6px 4px 0; min-height:8px}
+  .hint.hidden{visibility:hidden}
+  .hint .en{font-family:var(--en); font-weight:800; color:var(--ink)}
+  .hint .ne{font-family:var(--ne); color:var(--accent-d)}
+  .hint .rj{font-family:var(--en); font-weight:800; color:var(--muted); letter-spacing:1px}
+
+  #field{position:relative; flex:1; min-height:0; overflow:hidden; border-radius:20px;
+    background:radial-gradient(120% 90% at 50% 0%, rgba(255,255,255,.5), rgba(255,255,255,0)); border:1px solid rgba(255,255,255,.6)}
+  .bubble{position:absolute; top:0; left:0; width:64px; height:64px; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:bold; font-family:var(--jp);
+    cursor:pointer; will-change:transform; user-select:none;
+    box-shadow:0 6px 14px rgba(0,0,0,.18), inset 0 -4px 8px rgba(0,0,0,.12); border:2px solid rgba(255,255,255,.5)}
+  .bubble.pop{animation:pop .26s ease forwards}
+  .bubble.shake{animation:shake .3s ease}
+  @keyframes pop{to{transform:translate3d(var(--x),var(--y),0) scale(0); opacity:0}}
+  @keyframes shake{10%,90%{transform:translate3d(calc(var(--x) - 4px),var(--y),0)}30%,70%{transform:translate3d(calc(var(--x) + 6px),var(--y),0)}50%{transform:translate3d(calc(var(--x) - 6px),var(--y),0)}}
+  .footer{text-align:center; font-family:var(--en); font-size:9px; letter-spacing:2px; color:var(--muted); padding-top:6px; opacity:.7}
+
+  /* ---------- ANSWER ---------- */
+  #answer{position:absolute; inset:0; display:none; z-index:20; align-items:center; justify-content:center;
+    background:rgba(43,36,64,.45); backdrop-filter:blur(3px); padding:14px}
+  #answer.on{display:flex; animation:fade .25s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .acard{background:var(--card); border-radius:24px; width:100%; max-width:480px; max-height:92vh;
+    overflow-y:auto; -webkit-overflow-scrolling:touch; box-shadow:0 24px 60px rgba(0,0,0,.3); animation:rise .3s ease}
+  @keyframes rise{from{transform:translateY(24px)}to{transform:translateY(0)}}
+  .ahead{padding:22px 22px 16px; text-align:center; background:linear-gradient(160deg,#FFF1E2,#FFE4CE); border-radius:24px 24px 0 0}
+  .emoji{font-size:44px; line-height:1}
+  .kanji{font-family:var(--jp); font-weight:bold; margin:6px 0 4px}
+  .kanji.word{font-size:46px} .kanji.sent{font-size:26px; line-height:1.9}
+  .kanji ruby rt{font-size:.42em; color:var(--accent-d); font-weight:bold}
+  .speak{width:44px; height:44px; border-radius:50%; border:none; background:var(--accent); color:#fff;
+    font-size:21px; cursor:pointer; box-shadow:0 4px 0 var(--accent-d); margin-top:6px}
+  .speak:active{transform:translateY(3px); box-shadow:0 1px 0 var(--accent-d)}
+  .romaji{font-family:var(--en); color:var(--muted); font-weight:700; letter-spacing:1px; font-size:14px; margin-top:8px}
+  .means{padding:14px 20px 4px; display:flex; flex-direction:column; gap:8px}
+  .mrow{display:flex; align-items:baseline; gap:10px}
+  .tag{flex:0 0 auto; font-family:var(--en); font-size:10px; font-weight:800; letter-spacing:.5px; padding:3px 7px; border-radius:6px; color:#fff}
+  .tag.en{background:var(--blue)} .tag.ne{background:var(--green)}
+  .mrow .v{font-size:16px} .mrow.en .v{font-family:var(--en); font-weight:700} .mrow.ne .v{font-family:var(--ne)}
+  .note{margin:12px 20px 2px; padding:11px 14px; border-radius:14px; background:#FFF6E8; border:1px solid #F3E2C4}
+  .note .lb{font-family:var(--en); font-size:10px; font-weight:800; letter-spacing:1px; color:var(--accent-d)}
+  .note .jp{font-family:var(--jp); font-size:14px; margin-top:3px; line-height:1.6}
+  .note .jp ruby rt{font-size:.45em; color:var(--accent-d)}
+  .note .sm{font-size:12px; margin-top:4px; color:var(--muted)}
+  .note .sm .en{font-family:var(--en); font-weight:600} .note .sm .ne{font-family:var(--ne)}
+
+  .exhead{padding:14px 20px 2px; font-size:12px; color:var(--muted); font-family:var(--en); font-weight:800; letter-spacing:1px}
+  .ex{margin:6px 20px; padding:12px 14px; border:1px solid var(--line); border-radius:14px; background:#FFFCF7}
+  .ex .jp{font-family:var(--jp); font-size:18px; line-height:1.9; display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .ex .jp ruby rt{font-size:.42em; color:var(--accent-d)}
+  .ex .en{font-family:var(--en); color:var(--muted); font-size:13px; margin-top:4px; font-weight:600}
+  .ex .ne{font-family:var(--ne); color:var(--green); font-size:13px; margin-top:1px}
+  .mini{width:30px; height:30px; flex:0 0 auto; border-radius:50%; border:1px solid var(--line); background:#fff; cursor:pointer; font-size:15px}
+  .turn{margin:6px 20px; display:flex; gap:8px; align-items:flex-start}
+  .who{flex:0 0 auto; width:26px; height:26px; border-radius:50%; color:#fff; font-family:var(--en); font-weight:800;
+    font-size:13px; display:flex; align-items:center; justify-content:center; margin-top:4px}
+  .who.a{background:var(--blue)} .who.b{background:var(--accent)}
+  .bub{flex:1; background:#FFFCF7; border:1px solid var(--line); border-radius:14px; padding:10px 12px}
+  .bub .jp{font-family:var(--jp); font-size:17px; line-height:1.8; display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+  .bub .jp ruby rt{font-size:.42em; color:var(--accent-d)}
+  .bub .en{font-family:var(--en); color:var(--muted); font-size:12.5px; margin-top:3px; font-weight:600}
+  .bub .ne{font-family:var(--ne); color:var(--green); font-size:12.5px; margin-top:1px}
+
+  .afoot{padding:16px 20px 22px; text-align:center}
+  .next{font-family:var(--jp); font-weight:bold; border:none; cursor:pointer; background:var(--ink); color:#fff;
+    border-radius:999px; padding:14px 46px; font-size:18px; box-shadow:0 6px 0 #1b1630}
+  .next:active{transform:translateY(4px); box-shadow:0 2px 0 #1b1630}
+  .next .small{display:block; font-family:var(--en); font-weight:600; font-size:10px; opacity:.8}
+</style>
+</head>
+<body>
+
+<!-- TITLE -->
+<section id="title" class="screen on">
+  <div class="brand">NANORUNAMONAI</div>
+  <h1>ことば<br>あつめ</h1>
+  <div class="sub">にほんごを あそびながら · <span class="en">Learn Japanese by playing</span> · <span class="ne">खेल्दै सिक्नुहोस्</span></div>
+  <div class="modes">
+    <button class="mode" data-mode="word">
+      <div class="big">🫧</div>
+      <div>
+        <div class="t1">ことば <span class="lvl easy">28問</span></div>
+        <div class="t2"><span class="en">Collect single words</span> · <span class="ne">शब्द संकलन</span></div>
+      </div>
+    </button>
+    <button class="mode" data-mode="sent">
+      <div class="big">📝</div>
+      <div>
+        <div class="t1">ぶんしょう <span class="lvl hard">25問</span></div>
+        <div class="t2"><span class="en">Fill-in-the-blank sentences</span> · <span class="ne">वाक्य भर्नुहोस्</span></div>
+      </div>
+    </button>
+  </div>
+</section>
+
+<!-- GAME -->
+<section id="game" class="screen">
+  <div class="topbar">
+    <button class="iconbtn" id="homeBtn" title="home">🏠</button>
+    <div class="progress" id="prog">1 / 14</div>
+    <button class="iconbtn" id="hintBtn" title="hint">💡</button>
+    <button class="iconbtn" id="speedBtn" title="speed">×1.5</button>
+  </div>
+  <div class="panel">
+    <div id="board"></div>
+    <div class="hint hidden" id="hint"></div>
+  </div>
+  <div id="field"></div>
+  <div class="footer">NANORUNAMONAI</div>
+</section>
+
+<!-- ANSWER OVERLAY -->
+<div id="answer">
+  <div class="acard">
+    <div id="aBody"></div>
+    <div class="afoot"><button class="next" id="nextBtn">つぎ<span class="small">NEXT · अर्को</span></button></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   WORDS (EASY) — ネパール語はベスト・エフォート。奥様と直してOK。
+   ============================================================ */
+const WORDS = [
+  { hira:"あう", emoji:"🤝", romaji:"au", en:"to meet", ne:"भेट्नु", kanji:"<ruby>会<rt>あ</rt></ruby>う",
+    ex:[{jp:"<ruby>人<rt>ひと</rt></ruby>と<ruby>会<rt>あ</rt></ruby>う",say:"人と会う",en:"to meet a person",ne:"मान्छेसँग भेट्नु"},
+        {jp:"<ruby>友達<rt>ともだち</rt></ruby>と<ruby>会<rt>あ</rt></ruby>う",say:"友達と会う",en:"to meet a friend",ne:"साथीसँग भेट्नु"}]},
+  { hira:"あめ", emoji:"🌧️", romaji:"ame", en:"rain", ne:"पानी / वर्षा", kanji:"<ruby>雨<rt>あめ</rt></ruby>",
+    ex:[{jp:"<ruby>雨<rt>あめ</rt></ruby>が<ruby>降<rt>ふ</rt></ruby>って<ruby>来<rt>き</rt></ruby>た",say:"雨が降って来た",en:"It started to rain.",ne:"पानी पर्न थाल्यो।"},
+        {jp:"<ruby>雨降<rt>あめふ</rt></ruby>りだからジメジメする",say:"雨降りだからジメジメする",en:"It is humid because it is raining.",ne:"पानी परेकोले ओसिलो छ।"}]},
+  { hira:"おとな", emoji:"🧑", romaji:"otona", en:"adult", ne:"वयस्क", kanji:"<ruby>大人<rt>おとな</rt></ruby>",
+    ex:[{jp:"お<ruby>酒<rt>さけ</rt></ruby>は<ruby>大人<rt>おとな</rt></ruby>になってから",say:"お酒は大人になってから",en:"Alcohol only after you are an adult.",ne:"रक्सी वयस्क भएपछि मात्र।"},
+        {jp:"<ruby>大人<rt>おとな</rt></ruby>1,000<ruby>円<rt>えん</rt></ruby> <ruby>学生<rt>がくせい</rt></ruby>300<ruby>円<rt>えん</rt></ruby>",say:"大人千円、学生三百円",en:"Adults 1,000 yen, students 300 yen.",ne:"वयस्क १,००० येन, विद्यार्थी ३०० येन।"}]},
+  { hira:"えいえん", emoji:"♾️", romaji:"eien", en:"eternity / forever", ne:"अनन्त / सधैं", kanji:"<ruby>永遠<rt>えいえん</rt></ruby>",
+    ex:[{jp:"<ruby>時間<rt>じかん</rt></ruby>は<ruby>永遠<rt>えいえん</rt></ruby>じゃない",say:"時間は永遠じゃない",en:"Time is not eternal.",ne:"समय अनन्त छैन।"},
+        {jp:"<ruby>永遠<rt>えいえん</rt></ruby>に<ruby>一緒<rt>いっしょ</rt></ruby>にいたい",say:"永遠に一緒にいたい",en:"I want to be together forever.",ne:"सधैंभरि सँगै बस्न चाहन्छु।"}]},
+  { hira:"みず", emoji:"💧", romaji:"mizu", en:"water", ne:"पानी", kanji:"<ruby>水<rt>みず</rt></ruby>",
+    ex:[{jp:"<ruby>水<rt>みず</rt></ruby>を<ruby>飲<rt>の</rt></ruby>む",say:"水を飲む",en:"to drink water",ne:"पानी पिउनु"},
+        {jp:"<ruby>冷<rt>つめ</rt></ruby>たい<ruby>水<rt>みず</rt></ruby>がほしい",say:"冷たい水がほしい",en:"I want cold water.",ne:"मलाई चिसो पानी चाहियो।"}]},
+  { hira:"ねこ", emoji:"🐱", romaji:"neko", en:"cat", ne:"बिरालो", kanji:"<ruby>猫<rt>ねこ</rt></ruby>",
+    ex:[{jp:"<ruby>猫<rt>ねこ</rt></ruby>が<ruby>好<rt>す</rt></ruby>き",say:"猫が好き",en:"I like cats.",ne:"मलाई बिरालो मन पर्छ।"},
+        {jp:"<ruby>猫<rt>ねこ</rt></ruby>が<ruby>寝<rt>ね</rt></ruby>てる",say:"猫が寝てる",en:"The cat is sleeping.",ne:"बिरालो सुतिरहेको छ।"}]},
+  { hira:"いえ", emoji:"🏠", romaji:"ie", en:"house / home", ne:"घर", kanji:"<ruby>家<rt>いえ</rt></ruby>",
+    ex:[{jp:"<ruby>家<rt>いえ</rt></ruby>に<ruby>帰<rt>かえ</rt></ruby>る",say:"家に帰る",en:"to go home",ne:"घर फर्कनु"},
+        {jp:"<ruby>家<rt>いえ</rt></ruby>でごはんを<ruby>食<rt>た</rt></ruby>べる",say:"家でごはんを食べる",en:"to eat at home",ne:"घरमा खाना खानु"}]},
+  { hira:"あさ", emoji:"🌅", romaji:"asa", en:"morning", ne:"बिहान", kanji:"<ruby>朝<rt>あさ</rt></ruby>",
+    ex:[{jp:"<ruby>朝<rt>あさ</rt></ruby>ごはんを<ruby>食<rt>た</rt></ruby>べる",say:"朝ごはんを食べる",en:"to eat breakfast",ne:"बिहानको खाना खानु"},
+        {jp:"<ruby>朝<rt>あさ</rt></ruby>は<ruby>寒<rt>さむ</rt></ruby>い",say:"朝は寒い",en:"Mornings are cold.",ne:"बिहान चिसो हुन्छ।"}]},
+  { hira:"ともだち", emoji:"👫", romaji:"tomodachi", en:"friend", ne:"साथी", kanji:"<ruby>友達<rt>ともだち</rt></ruby>",
+    ex:[{jp:"<ruby>友達<rt>ともだち</rt></ruby>になる",say:"友達になる",en:"to become friends",ne:"साथी बन्नु"},
+        {jp:"<ruby>友達<rt>ともだち</rt></ruby>と<ruby>話<rt>はな</rt></ruby>す",say:"友達と話す",en:"to talk with a friend",ne:"साथीसँग कुरा गर्नु"}]},
+  { hira:"たべる", emoji:"🍽️", romaji:"taberu", en:"to eat", ne:"खानु", kanji:"<ruby>食<rt>た</rt></ruby>べる",
+    ex:[{jp:"ごはんを<ruby>食<rt>た</rt></ruby>べる",say:"ごはんを食べる",en:"to eat a meal",ne:"खाना खानु"},
+        {jp:"<ruby>一緒<rt>いっしょ</rt></ruby>に<ruby>食<rt>た</rt></ruby>べよう",say:"一緒に食べよう",en:"Let us eat together.",ne:"सँगै खाऔं।"}]},
+  { hira:"みる", emoji:"👀", romaji:"miru", en:"to see / to watch", ne:"हेर्नु", kanji:"<ruby>見<rt>み</rt></ruby>る",
+    ex:[{jp:"テレビを<ruby>見<rt>み</rt></ruby>る",say:"テレビを見る",en:"to watch TV",ne:"टिभी हेर्नु"},
+        {jp:"<ruby>写真<rt>しゃしん</rt></ruby>を<ruby>見<rt>み</rt></ruby>る",say:"写真を見る",en:"to look at photos",ne:"फोटो हेर्नु"}]},
+  { hira:"すき", emoji:"💕", romaji:"suki", en:"to like / to love", ne:"मन पर्ने", kanji:"<ruby>好<rt>す</rt></ruby>き",
+    ex:[{jp:"あなたが<ruby>好<rt>す</rt></ruby>き",say:"あなたが好き",en:"I like you.",ne:"मलाई तिमी मन पर्छ।"},
+        {jp:"<ruby>日本<rt>にほん</rt></ruby>が<ruby>好<rt>す</rt></ruby>き",say:"日本が好き",en:"I like Japan.",ne:"मलाई जापान मन पर्छ।"}]},
+  { hira:"みせ", emoji:"🏪", romaji:"mise", en:"shop / store", ne:"पसल", kanji:"<ruby>店<rt>みせ</rt></ruby>",
+    ex:[{jp:"<ruby>店<rt>みせ</rt></ruby>に<ruby>行<rt>い</rt></ruby>く",say:"店に行く",en:"to go to the shop",ne:"पसल जानु"},
+        {jp:"この<ruby>店<rt>みせ</rt></ruby>は<ruby>安<rt>やす</rt></ruby>い",say:"この店は安い",en:"This shop is cheap.",ne:"यो पसल सस्तो छ।"}]},
+  { hira:"おかね", emoji:"💴", romaji:"okane", en:"money", ne:"पैसा", kanji:"お<ruby>金<rt>かね</rt></ruby>",
+    ex:[{jp:"お<ruby>金<rt>かね</rt></ruby>がない",say:"お金がない",en:"I have no money.",ne:"मसँग पैसा छैन।"},
+        {jp:"お<ruby>金<rt>かね</rt></ruby>を<ruby>払<rt>はら</rt></ruby>う",say:"お金を払う",en:"to pay money",ne:"पैसा तिर्नु"}]},
+  { hira:"れんにゅう", emoji:"🥛", romaji:"rennyuu", en:"condensed milk", ne:"कन्डेन्स्ड मिल्क",
+    kanji:"<ruby>練乳<rt>れんにゅう</rt></ruby>",
+    ex:[{jp:"コーヒーに<ruby>練乳<rt>れんにゅう</rt></ruby>を<ruby>入<rt>い</rt></ruby>れる",say:"コーヒーに練乳を入れる",en:"to add condensed milk to coffee",ne:"कफीमा कन्डेन्स्ड मिल्क हाल्नु"},
+        {jp:"<ruby>練乳<rt>れんにゅう</rt></ruby>は<ruby>甘<rt>あま</rt></ruby>い",say:"練乳は甘い",en:"Condensed milk is sweet.",ne:"कन्डेन्स्ड मिल्क मीठो हुन्छ।"}]},
+  { hira:"かびん", emoji:"💐", romaji:"kabin", en:"flower vase", ne:"फूलदानी",
+    kanji:"<ruby>花瓶<rt>かびん</rt></ruby>",
+    ex:[{jp:"<ruby>花瓶<rt>かびん</rt></ruby>に<ruby>花<rt>はな</rt></ruby>を<ruby>入<rt>い</rt></ruby>れる",say:"花瓶に花を入れる",en:"to put flowers in a vase",ne:"फूलदानीमा फूल राख्नु"},
+        {jp:"<ruby>花瓶<rt>かびん</rt></ruby>が<ruby>割<rt>わ</rt></ruby>れた",say:"花瓶が割れた",en:"The vase broke.",ne:"फूलदानी भाँचियो।"}]},
+  { hira:"かだん", emoji:"🌷", romaji:"kadan", en:"flower bed", ne:"फूलबारी",
+    kanji:"<ruby>花壇<rt>かだん</rt></ruby>",
+    ex:[{jp:"<ruby>花壇<rt>かだん</rt></ruby>に<ruby>水<rt>みず</rt></ruby>をやる",say:"花壇に水をやる",en:"to water the flower bed",ne:"फूलबारीमा पानी दिनु"},
+        {jp:"<ruby>花壇<rt>かだん</rt></ruby>を<ruby>作<rt>つく</rt></ruby>る",say:"花壇を作る",en:"to make a flower bed",ne:"फूलबारी बनाउनु"}]},
+  { hira:"はち", emoji:"🪴", romaji:"hachi", en:"plant pot / bowl", ne:"गमला / भाँडो",
+    kanji:"<ruby>鉢<rt>はち</rt></ruby>",
+    ex:[{jp:"<ruby>鉢<rt>はち</rt></ruby>に<ruby>植<rt>う</rt></ruby>える",say:"鉢に植える",en:"to plant in a pot",ne:"गमलामा रोप्नु"},
+        {jp:"この<ruby>鉢<rt>はち</rt></ruby>は<ruby>大<rt>おお</rt></ruby>きい",say:"この鉢は大きい",en:"This pot is big.",ne:"यो गमला ठूलो छ।"}]},
+  { hira:"うつわ", emoji:"🫙", romaji:"utsuwa", en:"bowl / vessel", ne:"भाँडो / पात्र",
+    kanji:"<ruby>器<rt>うつわ</rt></ruby>",
+    ex:[{jp:"この<ruby>器<rt>うつわ</rt></ruby>は<ruby>美<rt>うつく</rt></ruby>しい",say:"この器は美しい",en:"This bowl is beautiful.",ne:"यो भाँडो सुन्दर छ।"},
+        {jp:"<ruby>器<rt>うつわ</rt></ruby>を<ruby>洗<rt>あら</rt></ruby>う",say:"器を洗う",en:"to wash the bowl",ne:"भाँडो धुनु"}]},
+  { hira:"しょっき", emoji:"🍽️", romaji:"shokki", en:"tableware / dishes", ne:"भाँडाकुँडा",
+    kanji:"<ruby>食器<rt>しょっき</rt></ruby>",
+    ex:[{jp:"<ruby>食器<rt>しょっき</rt></ruby>を<ruby>洗<rt>あら</rt></ruby>う",say:"食器を洗う",en:"to wash the dishes",ne:"भाँडाकुँडा धुनु"},
+        {jp:"<ruby>食器<rt>しょっき</rt></ruby>を<ruby>棚<rt>たな</rt></ruby>に<ruby>片付<rt>かたづ</rt></ruby>ける",say:"食器を棚に片付ける",en:"to put the dishes on the shelf",ne:"भाँडा दराजमा राख्नु"}]},
+  { hira:"こざら", emoji:"🥗", romaji:"kozara", en:"small plate", ne:"साना थाल",
+    kanji:"<ruby>小皿<rt>こざら</rt></ruby>",
+    ex:[{jp:"<ruby>小皿<rt>こざら</rt></ruby>に<ruby>取<rt>と</rt></ruby>り<ruby>分<rt>わ</rt></ruby>ける",say:"小皿に取り分ける",en:"to serve onto a small plate",ne:"साना थालमा छुट्याउनु"},
+        {jp:"<ruby>小皿<rt>こざら</rt></ruby>を<ruby>使<rt>つか</rt></ruby>って",say:"小皿を使って",en:"Use the small plate.",ne:"साना थाल प्रयोग गर।"}]},
+
+  { hira:"おたま", emoji:"🥄", romaji:"otama", en:"ladle", ne:"करछा",
+    kanji:"お<ruby>玉<rt>たま</rt></ruby>",
+    ex:[{jp:"お<ruby>玉<rt>たま</rt></ruby>でスープをよそう",say:"お玉でスープをよそう",en:"to ladle out soup",ne:"करछाले सूप निकाल्नु"},
+        {jp:"お<ruby>玉<rt>たま</rt></ruby>はどこ？",say:"お玉はどこ？",en:"Where is the ladle?",ne:"करछा कहाँ छ?"}]},
+  { hira:"とんぐ", emoji:"🍖", romaji:"tongu", en:"tongs", ne:"चिम्टा",
+    kanji:"トング",
+    ex:[{jp:"トングで<ruby>肉<rt>にく</rt></ruby>をはさむ",say:"トングで肉をはさむ",en:"to grab meat with tongs",ne:"चिम्टाले मासु समात्नु"},
+        {jp:"トングを<ruby>使<rt>つか</rt></ruby>って",say:"トングを使って",en:"Use the tongs.",ne:"चिम्टा प्रयोग गर।"}]},
+  { hira:"さいばし", emoji:"🍜", romaji:"saibashi", en:"cooking chopsticks", ne:"पकाउने चप्स्टिक",
+    kanji:"<ruby>菜箸<rt>さいばし</rt></ruby>",
+    ex:[{jp:"<ruby>菜箸<rt>さいばし</rt></ruby>でかき<ruby>混<rt>ま</rt></ruby>ぜる",say:"菜箸でかき混ぜる",en:"to stir with cooking chopsticks",ne:"पकाउने चप्स्टिकले हिलाउनु"},
+        {jp:"<ruby>菜箸<rt>さいばし</rt></ruby>は<ruby>長<rt>なが</rt></ruby>い",say:"菜箸は長い",en:"Cooking chopsticks are long.",ne:"पकाउने चप्स्टिक लामो हुन्छ।"}]},
+  { hira:"おはし", emoji:"🥢", romaji:"ohashi", en:"chopsticks", ne:"चप्स्टिक",
+    kanji:"お<ruby>箸<rt>はし</rt></ruby>",
+    ex:[{jp:"お<ruby>箸<rt>はし</rt></ruby>を<ruby>使<rt>つか</rt></ruby>う",say:"お箸を使う",en:"to use chopsticks",ne:"चप्स्टिक प्रयोग गर्नु"},
+        {jp:"お<ruby>箸<rt>はし</rt></ruby>で<ruby>食<rt>た</rt></ruby>べる",say:"お箸で食べる",en:"to eat with chopsticks",ne:"चप्स्टिकले खानु"}]},
+  { hira:"めんぼう", emoji:"🪥", romaji:"menbou", en:"cotton swab / Q-tip", ne:"कटन बड",
+    kanji:"<ruby>綿棒<rt>めんぼう</rt></ruby>",
+    ex:[{jp:"<ruby>綿棒<rt>めんぼう</rt></ruby>で<ruby>耳<rt>みみ</rt></ruby>をそうじする",say:"綿棒で耳を掃除する",en:"to clean ears with a cotton swab",ne:"कटन बडले कान सफा गर्नु"},
+        {jp:"<ruby>綿棒<rt>めんぼう</rt></ruby>はどこ？",say:"綿棒はどこ？",en:"Where are the cotton swabs?",ne:"कटन बड कहाँ छ?"}]},
+  { hira:"まないた", emoji:"🔪", romaji:"manaita", en:"cutting board", ne:"काट्ने बोर्ड",
+    kanji:"<ruby>まな板<rt>まないた</rt></ruby>",
+    ex:[{jp:"<ruby>まな板<rt>まないた</rt></ruby>で<ruby>野菜<rt>やさい</rt></ruby>を<ruby>切<rt>き</rt></ruby>る",say:"まな板で野菜を切る",en:"to cut vegetables on a cutting board",ne:"काट्ने बोर्डमा तरकारी काट्नु"},
+        {jp:"<ruby>まな板<rt>まないた</rt></ruby>を<ruby>洗<rt>あら</rt></ruby>って",say:"まな板を洗って",en:"Please wash the cutting board.",ne:"काट्ने बोर्ड धोऊ।"}]},
+  { hira:"ふきん", emoji:"🧽", romaji:"fukin", en:"dish cloth / kitchen cloth", ne:"भाँडा पुछ्ने कपडा",
+    kanji:"ふきん",
+    ex:[{jp:"ふきんで<ruby>台<rt>だい</rt></ruby>をふく",say:"ふきんで台をふく",en:"to wipe the counter with a cloth",ne:"कपडाले काउन्टर पुछ्नु"},
+        {jp:"ふきんをかわかす",say:"ふきんを乾かす",en:"to dry the cloth",ne:"कपडा सुकाउनु"}]}
+];
+
+/* ============================================================
+   SENTENCES (HARD) — 虫食い。blank に約4文字。
+   hira = ひらがな表示文 / blanks = 空欄にする部分（文字列）
+   ============================================================ */
+const RAW_SENTS = [
+  { hira:"きょう、ともだちと、やくそくをしてたけど、なくなった。", key:"やくそく", head:3, tail:0,
+    kanji:"<ruby>今日<rt>きょう</rt></ruby>、<ruby>友達<rt>ともだち</rt></ruby>と、<ruby>約束<rt>やくそく</rt></ruby>をしてたけど、なくなった。",
+    say:"今日、友達と約束をしてたけど、なくなった。",
+    en:"I had plans with a friend today, but they fell through.",
+    ne:"आज साथीसँग भेट्ने वाचा थियो, तर रद्द भयो।",
+    note:{jp:"「なくなった」＝<ruby>予定<rt>よてい</rt></ruby>が<ruby>消<rt>き</rt></ruby>えた・キャンセルされたこと。",
+          en:"Here \u201Cnakunatta\u201D means the plan fell through (got canceled).", ne:"यहाँ योजना रद्द भयो भन्ने अर्थ।"},
+    dialog:[{who:"a",jp:"<ruby>今日<rt>きょう</rt></ruby>あそべる？",say:"今日あそべる？",en:"Can you hang out today?",ne:"आज भेट्न मिल्छ?"},
+            {who:"b",jp:"ごめん、<ruby>約束<rt>やくそく</rt></ruby>がなくなったから、ひま！",say:"ごめん、約束がなくなったから、暇！",en:"Sorry \u2014 my plans fell through, so I am free!",ne:"माफ गर, योजना रद्द भयो, त्यसैले फुर्सद छ!"}]},
+  { hira:"しゅうまつ、どこかにでかけよう。", key:"でかけよう", head:3, tail:0,
+    kanji:"<ruby>週末<rt>しゅうまつ</rt></ruby>、どこかに<ruby>出<rt>で</rt></ruby>かけよう。",
+    say:"週末、どこかに出かけよう。",
+    en:"Let us go out somewhere this weekend.",
+    ne:"यो हप्ताको अन्त्यमा कतै जाऔं।",
+    note:{jp:"「<ruby>出<rt>で</rt></ruby>かけよう」＝「<ruby>出<rt>で</rt></ruby>かける」のさそう<ruby>形<rt>かたち</rt></ruby>（〜しよう）。",
+          en:"\u201Cdekakeyou\u201D is the volitional \u201Clet us go out.\u201D", ne:"\u201Cबाहिर जाऔं\u201D भन्ने रूप।"},
+    dialog:[{who:"a",jp:"<ruby>週末<rt>しゅうまつ</rt></ruby>、どこかに<ruby>出<rt>で</rt></ruby>かけよう。",say:"週末、どこかに出かけよう。",en:"Let us go out somewhere this weekend.",ne:"यो हप्ता कतै जाऔं।"},
+            {who:"b",jp:"いいね！<ruby>海<rt>うみ</rt></ruby>に<ruby>行<rt>い</rt></ruby>きたい。",say:"いいね！海に行きたい。",en:"Sounds good! I want to go to the sea.",ne:"राम्रो! समुद्र जान मन छ।"}]},
+  { hira:"きおんにうるさい。", key:"うるさい", head:3, tail:0,
+    kanji:"<ruby>気温<rt>きおん</rt></ruby>にうるさい。",
+    say:"気温にうるさい。",
+    en:"(She) is very particular about temperature.",
+    ne:"(उनी) तापक्रमको बारेमा धेरै छनोटिलो छिन्।",
+    note:{jp:"「〜にうるさい」＝こだわりが<ruby>強<rt>つよ</rt></ruby>い・<ruby>好<rt>この</rt></ruby>みが<ruby>細<rt>こま</rt></ruby>かい。「<ruby>音<rt>おと</rt></ruby>がうるさい」とは<ruby>別<rt>べつ</rt></ruby>の<ruby>意味<rt>いみ</rt></ruby>。",
+          en:"\u201C~ni urusai\u201D = fussy/particular about something \u2014 not \u201Cnoisy.\u201D", ne:"\u201C~नी उरुसाई\u201D = कुनै कुरामा छनोटिलो; \u201Cहल्ला\u201D होइन।"},
+    dialog:[{who:"a",jp:"エアコン、26<ruby>度<rt>ど</rt></ruby>でいい？",say:"エアコン、26度でいい？",en:"Is 26 degrees on the AC okay?",ne:"एसी २६ डिग्री ठिक छ?"},
+            {who:"b",jp:"もうすこし<ruby>下<rt>さ</rt></ruby>げて。<ruby>気温<rt>きおん</rt></ruby>にうるさいの。",say:"もう少し下げて。気温にうるさいの。",en:"Lower it a bit \u2014 I am picky about temperature.",ne:"अलि घटाऊ \u2014 म तापक्रममा छनोटिलो छु।"}]},
+  { hira:"まいにち、8じかんねてます。", key:"ねてます", head:3, tail:0,
+    kanji:"<ruby>毎日<rt>まいにち</rt></ruby>、8<ruby>時間<rt>じかん</rt></ruby><ruby>寝<rt>ね</rt></ruby>てます。",
+    say:"毎日、8時間寝てます。",
+    en:"I sleep 8 hours every day.",
+    ne:"म हरेक दिन ८ घण्टा सुत्छु।",
+    note:{jp:"「<ruby>寝<rt>ね</rt></ruby>てます」＝「<ruby>寝<rt>ね</rt></ruby>ています」の<ruby>話<rt>はな</rt></ruby>し<ruby>言葉<rt>ことば</rt></ruby>（〜てます）。",
+          en:"\u201Cnetemasu\u201D is casual spoken form of \u201Cneteimasu.\u201D", ne:"बोलीचालीको रूप।"},
+    dialog:[{who:"a",jp:"よく<ruby>寝<rt>ね</rt></ruby>てる？",say:"よく寝てる？",en:"Are you sleeping well?",ne:"राम्ररी सुत्छौ?"},
+            {who:"b",jp:"うん、<ruby>毎日<rt>まいにち</rt></ruby>8<ruby>時間<rt>じかん</rt></ruby><ruby>寝<rt>ね</rt></ruby>てます。",say:"うん、毎日8時間寝てます。",en:"Yeah, I sleep 8 hours every day.",ne:"हो, हरेक दिन ८ घण्टा सुत्छु।"}]},
+  { hira:"すきな、たべものは、やきざかなです。", key:"やきざかな", head:3, tail:0,
+    kanji:"<ruby>好<rt>す</rt></ruby>きな、<ruby>食<rt>た</rt></ruby>べ<ruby>物<rt>もの</rt></ruby>は、<ruby>焼<rt>や</rt></ruby>き<ruby>魚<rt>ざかな</rt></ruby>です。",
+    say:"好きな食べ物は、焼き魚です。",
+    en:"My favorite food is grilled fish.",
+    ne:"मेरो मनपर्ने खाना पोलेको माछा हो।",
+    note:{jp:"「<ruby>焼<rt>や</rt></ruby>き<ruby>魚<rt>ざかな</rt></ruby>」＝<ruby>魚<rt>さかな</rt></ruby>を<ruby>焼<rt>や</rt></ruby>いた<ruby>料理<rt>りょうり</rt></ruby>。「さかな」が「ざかな」と<ruby>濁<rt>にご</rt></ruby>る。",
+          en:"\u201Cyakizakana\u201D = grilled fish; \u201Csakana\u201D becomes \u201Czakana\u201D (rendaku).", ne:"पोलेको माछा।"},
+    dialog:[{who:"a",jp:"<ruby>好<rt>す</rt></ruby>きな<ruby>食<rt>た</rt></ruby>べ<ruby>物<rt>もの</rt></ruby>は？",say:"好きな食べ物は？",en:"What is your favorite food?",ne:"मनपर्ने खाना के हो?"},
+            {who:"b",jp:"<ruby>焼<rt>や</rt></ruby>き<ruby>魚<rt>ざかな</rt></ruby>です。",say:"焼き魚です。",en:"Grilled fish.",ne:"पोलेको माछा।"}]},
+  { hira:"さいきん、しごとがいそがしくて、よゆうがない。", key:"よゆうが", head:3, tail:0,
+    kanji:"<ruby>最近<rt>さいきん</rt></ruby>、<ruby>仕事<rt>しごと</rt></ruby>が<ruby>忙<rt>いそが</rt></ruby>しくて、<ruby>余裕<rt>よゆう</rt></ruby>がない。",
+    say:"最近、仕事が忙しくて、余裕がない。",
+    en:"Lately I am so busy with work that I have no room to breathe.",
+    ne:"आजकल काममा व्यस्त भएर फुर्सद छैन।",
+    note:{jp:"「<ruby>余裕<rt>よゆう</rt></ruby>がない」＝<ruby>時間<rt>じかん</rt></ruby>・お<ruby>金<rt>かね</rt></ruby>・<ruby>心<rt>こころ</rt></ruby>にゆとりがない。",
+          en:"\u201Cyoyuu ga nai\u201D = no room to spare (time, money, or mind).", ne:"फुर्सद/ठाउँ छैन।"},
+    dialog:[{who:"a",jp:"あそびに<ruby>行<rt>い</rt></ruby>こうよ。",say:"遊びに行こうよ。",en:"Let us go hang out.",ne:"घुम्न जाऔं।"},
+            {who:"b",jp:"ごめん、<ruby>今<rt>いま</rt></ruby><ruby>余裕<rt>よゆう</rt></ruby>がないんだ。",say:"ごめん、今余裕がないんだ。",en:"Sorry, I have no breathing room right now.",ne:"माफ गर, अहिले फुर्सद छैन।"}]},
+  { hira:"あのひとは、くちがかたい。", key:"がかたい", head:3, tail:0,
+    kanji:"あの<ruby>人<rt>ひと</rt></ruby>は、<ruby>口<rt>くち</rt></ruby>が<ruby>堅<rt>かた</rt></ruby>い。",
+    say:"あの人は、口が堅い。",
+    en:"That person can keep a secret.",
+    ne:"त्यो मान्छेले गोप्य कुरा राख्न सक्छ।",
+    note:{jp:"「<ruby>口<rt>くち</rt></ruby>が<ruby>堅<rt>かた</rt></ruby>い」＝ひみつを<ruby>守<rt>まも</rt></ruby>れる<ruby>人<rt>ひと</rt></ruby>。<ruby>体<rt>からだ</rt></ruby>の「<ruby>口<rt>くち</rt></ruby>」ではなく<ruby>性格<rt>せいかく</rt></ruby>のこと（<ruby>慣用句<rt>かんようく</rt></ruby>）。",
+          en:"\u201Ckuchi ga katai\u201D = good at keeping secrets (an idiom, not literal).", ne:"गोप्य कुरा राख्न सक्ने (वाक्पद्धति)।"},
+    dialog:[{who:"a",jp:"このこと、<ruby>話<rt>はな</rt></ruby>して<ruby>大丈夫<rt>だいじょうぶ</rt></ruby>？",say:"このこと、話して大丈夫？",en:"Is it okay to talk about this?",ne:"यो कुरा भन्न ठिक छ?"},
+            {who:"b",jp:"あの<ruby>人<rt>ひと</rt></ruby>は<ruby>口<rt>くち</rt></ruby>が<ruby>堅<rt>かた</rt></ruby>いから<ruby>安心<rt>あんしん</rt></ruby>だよ。",say:"あの人は口が堅いから安心だよ。",en:"He can keep a secret, so it is fine.",ne:"उसले गोप्य राख्छ, त्यसैले ढुक्क।"}]},
+  { hira:"きのうのえいが、びみょうだった。", key:"びみょう", head:3, tail:0,
+    kanji:"<ruby>昨日<rt>きのう</rt></ruby>の<ruby>映画<rt>えいが</rt></ruby>、<ruby>微妙<rt>びみょう</rt></ruby>だった。",
+    say:"昨日の映画、微妙だった。",
+    en:"Yesterday\u2019s movie was kind of meh.",
+    ne:"हिजोको फिल्म त्यति राम्रो थिएन।",
+    note:{jp:"「<ruby>微妙<rt>びみょう</rt></ruby>」＝「あまり<ruby>良<rt>よ</rt></ruby>くない／なんとも<ruby>言<rt>い</rt></ruby>えない」の<ruby>口語<rt>こうご</rt></ruby>。",
+          en:"\u201Cbimyou\u201D colloquially means \u201Cso-so / meh / not great.\u201D", ne:"\u201Cत्यति राम्रो होइन\u201D भन्ने अर्थ।"},
+    dialog:[{who:"a",jp:"<ruby>映画<rt>えいが</rt></ruby>どうだった？",say:"映画どうだった？",en:"How was the movie?",ne:"फिल्म कस्तो थियो?"},
+            {who:"b",jp:"うーん、<ruby>微妙<rt>びみょう</rt></ruby>だった。",say:"うーん、微妙だった。",en:"Hmm, it was kind of meh.",ne:"हुम्म, त्यति राम्रो थिएन।"}]},
+  { hira:"でんしゃがおくれて、ちこくした。", key:"ちこくし", head:3, tail:0,
+    kanji:"<ruby>電車<rt>でんしゃ</rt></ruby>が<ruby>遅<rt>おく</rt></ruby>れて、<ruby>遅刻<rt>ちこく</rt></ruby>した。",
+    say:"電車が遅れて、遅刻した。",
+    en:"The train was late, so I was late.",
+    ne:"रेल ढिलो भएकोले म ढिलो भएँ।",
+    note:{jp:"「<ruby>遅刻<rt>ちこく</rt></ruby>」＝<ruby>決<rt>き</rt></ruby>まった<ruby>時間<rt>じかん</rt></ruby>に<ruby>間<rt>ま</rt></ruby>に<ruby>合<rt>あ</rt></ruby>わないこと。",
+          en:"\u201Cchikoku\u201D = being late to school, work, or an appointment.", ne:"समयमा नआइपुग्नु।"},
+    dialog:[{who:"a",jp:"どうしたの？",say:"どうしたの？",en:"What happened?",ne:"के भयो?"},
+            {who:"b",jp:"<ruby>電車<rt>でんしゃ</rt></ruby>が<ruby>遅<rt>おく</rt></ruby>れて、<ruby>遅刻<rt>ちこく</rt></ruby>しちゃった。",say:"電車が遅れて、遅刻しちゃった。",en:"The train was late, so I ended up being late.",ne:"रेल ढिलो भएर ढिलो भएँ।"}]},
+  { hira:"こどものことが、しんぱい。", key:"しんぱい", head:3, tail:0,
+    kanji:"<ruby>子供<rt>こども</rt></ruby>のことが、<ruby>心配<rt>しんぱい</rt></ruby>。",
+    say:"子供のことが、心配。",
+    en:"I am worried about my child.",
+    ne:"मलाई बच्चाको चिन्ता छ।",
+    note:{jp:"「<ruby>心配<rt>しんぱい</rt></ruby>」＝<ruby>気<rt>き</rt></ruby>になって<ruby>不安<rt>ふあん</rt></ruby>なこと。",
+          en:"\u201Cshinpai\u201D = worry, concern.", ne:"चिन्ता, फिक्री।"},
+    dialog:[{who:"a",jp:"<ruby>元気<rt>げんき</rt></ruby>ないね。",say:"元気ないね。",en:"You look down.",ne:"निराश देखिन्छौ।"},
+            {who:"b",jp:"<ruby>子供<rt>こども</rt></ruby>のことが、<ruby>心配<rt>しんぱい</rt></ruby>で。",say:"子供のことが、心配で。",en:"I am worried about my child.",ne:"बच्चाको चिन्ता छ।"}]},
+  { hira:"ねつがあるので、しごとをやすみます。", key:"やすみます", head:3, tail:0,
+    kanji:"<ruby>熱<rt>ねつ</rt></ruby>があるので、<ruby>仕事<rt>しごと</rt></ruby>を<ruby>休<rt>やす</rt></ruby>みます。",
+    say:"熱があるので、仕事を休みます。",
+    en:"I have a fever, so I will take the day off work.",
+    ne:"ज्वरो आएकोले काम बिदा लिन्छु।",
+    note:{jp:"「<ruby>休<rt>やす</rt></ruby>みます」＝<ruby>仕事<rt>しごと</rt></ruby>や<ruby>学校<rt>がっこう</rt></ruby>を<ruby>休<rt>やす</rt></ruby>むこと。",
+          en:"\u201Cyasumimasu\u201D = to take a day off / to rest.", ne:"बिदा लिनु।"},
+    dialog:[{who:"a",jp:"<ruby>顔色<rt>かおいろ</rt></ruby>、<ruby>悪<rt>わる</rt></ruby>いよ。",say:"顔色、悪いよ。",en:"You look pale.",ne:"अनुहार बिग्रेको छ।"},
+            {who:"b",jp:"<ruby>熱<rt>ねつ</rt></ruby>があるので、<ruby>休<rt>やす</rt></ruby>みます。",say:"熱があるので、休みます。",en:"I have a fever, so I will rest.",ne:"ज्वरो आएकोले बिदा लिन्छु।"}]},
+  { hira:"やくそくは、かならずまもります。", key:"まもります", head:3, tail:0,
+    kanji:"<ruby>約束<rt>やくそく</rt></ruby>は、<ruby>必<rt>かなら</rt></ruby>ず<ruby>守<rt>まも</rt></ruby>ります。",
+    say:"約束は、必ず守ります。",
+    en:"I will keep my promise without fail.",
+    ne:"म वाचा पक्कै पूरा गर्छु।",
+    note:{jp:"「<ruby>守<rt>まも</rt></ruby>る」＝<ruby>約束<rt>やくそく</rt></ruby>やルールを<ruby>破<rt>やぶ</rt></ruby>らないこと。",
+          en:"\u201Cmamoru\u201D = to keep (a promise) / to protect.", ne:"पालना गर्नु, रक्षा गर्नु।"},
+    dialog:[{who:"a",jp:"<ruby>本当<rt>ほんとう</rt></ruby>に<ruby>大丈夫<rt>だいじょうぶ</rt></ruby>？",say:"本当に大丈夫？",en:"Are you really sure?",ne:"साँच्चै ठिक छ?"},
+            {who:"b",jp:"<ruby>約束<rt>やくそく</rt></ruby>は、<ruby>必<rt>かなら</rt></ruby>ず<ruby>守<rt>まも</rt></ruby>ります。",say:"約束は、必ず守ります。",en:"I will keep my promise for sure.",ne:"म वाचा पक्कै पूरा गर्छु।"}]},
+  { hira:"きょうは、ざんぎょうです。", key:"ざんぎょう", head:3, tail:0,
+    kanji:"<ruby>今日<rt>きょう</rt></ruby>は、<ruby>残業<rt>ざんぎょう</rt></ruby>です。",
+    say:"今日は、残業です。",
+    en:"I have overtime today.",
+    ne:"आज ओभरटाइम छ।",
+    note:{jp:"「<ruby>残業<rt>ざんぎょう</rt></ruby>」＝<ruby>決<rt>き</rt></ruby>められた<ruby>時間<rt>じかん</rt></ruby>より<ruby>長<rt>なが</rt></ruby>く<ruby>働<rt>はたら</rt></ruby>くこと。",
+          en:"\u201Czangyou\u201D = working overtime.", ne:"तोकिएको समयभन्दा बढी काम गर्नु।"},
+    dialog:[{who:"a",jp:"ごはん、<ruby>一緒<rt>いっしょ</rt></ruby>にどう？",say:"ごはん、一緒にどう？",en:"Want to grab dinner together?",ne:"सँगै खाना खाऔं?"},
+            {who:"b",jp:"ごめん、<ruby>今日<rt>きょう</rt></ruby>は<ruby>残業<rt>ざんぎょう</rt></ruby>なんだ。",say:"ごめん、今日は残業なんだ。",en:"Sorry, I have overtime today.",ne:"माफ गर, आज ओभरटाइम छ।"}]},
+  { hira:"めんせつのまえは、きんちょうする。", key:"きんちょう", head:3, tail:0,
+    kanji:"<ruby>面接<rt>めんせつ</rt></ruby>の<ruby>前<rt>まえ</rt></ruby>は、<ruby>緊張<rt>きんちょう</rt></ruby>する。",
+    say:"面接の前は、緊張する。",
+    en:"I get nervous before an interview.",
+    ne:"अन्तर्वार्ता अघि म नर्भस हुन्छु।",
+    note:{jp:"「<ruby>緊張<rt>きんちょう</rt></ruby>」＝<ruby>気持<rt>きも</rt></ruby>ちが<ruby>張<rt>は</rt></ruby>りつめること。",
+          en:"\u201Ckinchou\u201D = feeling nervous / tense.", ne:"नर्भस / तनावग्रस्त हुनु।"},
+    dialog:[{who:"a",jp:"<ruby>大丈夫<rt>だいじょうぶ</rt></ruby>？",say:"大丈夫？",en:"You okay?",ne:"ठिक छौ?"},
+            {who:"b",jp:"<ruby>面接<rt>めんせつ</rt></ruby>、<ruby>緊張<rt>きんちょう</rt></ruby>する…",say:"面接、緊張する…",en:"I'm nervous about the interview...",ne:"अन्तर्वार्ताको लागि नर्भस छु…"}]},
+  { hira:"ほしいけど、がまんします。", key:"がまんし", head:3, tail:0,
+    kanji:"ほしいけど、<ruby>我慢<rt>がまん</rt></ruby>します。",
+    say:"ほしいけど、我慢します。",
+    en:"I want it, but I will hold back.",
+    ne:"मन छ, तर म धैर्य गर्छु।",
+    note:{jp:"「<ruby>我慢<rt>がまん</rt></ruby>する」＝ほしい・つらい<ruby>気持<rt>きも</rt></ruby>ちをこらえること。",
+          en:"\u201Cgaman suru\u201D = to endure / hold back / be patient.", ne:"सहनु, धैर्य गर्नु।"},
+    dialog:[{who:"a",jp:"それ、<ruby>買<rt>か</rt></ruby>わないの？",say:"それ、買わないの？",en:"Aren't you going to buy that?",ne:"त्यो किन्दैनौ?"},
+            {who:"b",jp:"<ruby>高<rt>たか</rt></ruby>いから、<ruby>我慢<rt>がまん</rt></ruby>する。",say:"高いから、我慢する。",en:"It's expensive, so I'll hold back.",ne:"महँगो छ, त्यसैले छाड्छु।"}]},
+  { hira:"にほんのしゅうかんに、なれてきた。", key:"しゅうかん", head:3, tail:0,
+    kanji:"<ruby>日本<rt>にほん</rt></ruby>の<ruby>習慣<rt>しゅうかん</rt></ruby>に、<ruby>慣<rt>な</rt></ruby>れてきた。",
+    say:"日本の習慣に、慣れてきた。",
+    en:"I have gotten used to Japanese customs.",
+    ne:"म जापानी चलनमा अभ्यस्त भएँ।",
+    note:{jp:"「<ruby>習慣<rt>しゅうかん</rt></ruby>」＝いつものくせ・ならわし。「<ruby>慣<rt>な</rt></ruby>れる」＝できるようになる。",
+          en:"\u201Cshuukan\u201D = habit / custom; \u201Cnareru\u201D = to get used to.", ne:"चलन/बानी; अभ्यस्त हुनु।"},
+    dialog:[{who:"a",jp:"<ruby>日本<rt>にほん</rt></ruby>の<ruby>生活<rt>せいかつ</rt></ruby>、どう？",say:"日本の生活、どう？",en:"How is life in Japan?",ne:"जापानको जीवन कस्तो छ?"},
+            {who:"b",jp:"<ruby>習慣<rt>しゅうかん</rt></ruby>に、<ruby>慣<rt>な</rt></ruby>れてきたよ。",say:"習慣に、慣れてきたよ。",en:"I'm getting used to the customs.",ne:"चलनमा अभ्यस्त हुँदैछु।"}]},
+  { hira:"あした、つごうがわるい。", key:"つごうが", head:3, tail:0,
+    kanji:"<ruby>明日<rt>あした</rt></ruby>、<ruby>都合<rt>つごう</rt></ruby>が<ruby>悪<rt>わる</rt></ruby>い。",
+    say:"明日、都合が悪い。",
+    en:"Tomorrow is inconvenient for me.",
+    ne:"भोलि मलाई मिल्दैन।",
+    note:{jp:"「<ruby>都合<rt>つごう</rt></ruby>が<ruby>悪<rt>わる</rt></ruby>い」＝<ruby>予定<rt>よてい</rt></ruby>が<ruby>合<rt>あ</rt></ruby>わない。<ruby>反対<rt>はんたい</rt></ruby>は「<ruby>都合<rt>つごう</rt></ruby>がいい」。",
+          en:"\u201Ctsugou ga warui\u201D = it's a bad time / inconvenient.", ne:"समय मिल्दैन।"},
+    dialog:[{who:"a",jp:"<ruby>明日<rt>あした</rt></ruby>、<ruby>会<rt>あ</rt></ruby>える？",say:"明日、会える？",en:"Can we meet tomorrow?",ne:"भोलि भेट्न मिल्छ?"},
+            {who:"b",jp:"ごめん、<ruby>明日<rt>あした</rt></ruby>は<ruby>都合<rt>つごう</rt></ruby>が<ruby>悪<rt>わる</rt></ruby>い。",say:"ごめん、明日は都合が悪い。",en:"Sorry, tomorrow doesn't work for me.",ne:"माफ गर, भोलि मिल्दैन।"}]},
+  { hira:"かえりみち、きをつけてね。", key:"きをつけて", head:3, tail:0,
+    kanji:"<ruby>帰<rt>かえ</rt></ruby>り<ruby>道<rt>みち</rt></ruby>、<ruby>気<rt>き</rt></ruby>をつけてね。",
+    say:"帰り道、気をつけてね。",
+    en:"Take care on your way home.",
+    ne:"घर फर्कंदा होसियार है।",
+    note:{jp:"「<ruby>気<rt>き</rt></ruby>をつけて」＝<ruby>注意<rt>ちゅうい</rt></ruby>して・<ruby>無事<rt>ぶじ</rt></ruby>でね、というあいさつ。",
+          en:"\u201Cki o tsukete\u201D = \u201Ctake care / be careful\u201D (a parting phrase).", ne:"होसियार हुनु (बिदाइको शब्द)।"},
+    dialog:[{who:"a",jp:"そろそろ<ruby>帰<rt>かえ</rt></ruby>るね。",say:"そろそろ帰るね。",en:"I'm heading home now.",ne:"अब घर जान्छु है।"},
+            {who:"b",jp:"うん、<ruby>気<rt>き</rt></ruby>をつけてね。",say:"うん、気をつけてね。",en:"Okay, take care.",ne:"हुन्छ, होसियार है।"}]},
+  { hira:"ぶちょうは、かおがひろい。", key:"がひろい", head:3, tail:0,
+    kanji:"<ruby>部長<rt>ぶちょう</rt></ruby>は、<ruby>顔<rt>かお</rt></ruby>が<ruby>広<rt>ひろ</rt></ruby>い。",
+    say:"部長は、顔が広い。",
+    en:"The department head knows a lot of people.",
+    ne:"विभाग प्रमुखको धेरै चिनजान छ।",
+    note:{jp:"「<ruby>顔<rt>かお</rt></ruby>が<ruby>広<rt>ひろ</rt></ruby>い」＝<ruby>知<rt>し</rt></ruby>り<ruby>合<rt>あ</rt></ruby>いが<ruby>多<rt>おお</rt></ruby>いこと（<ruby>慣用句<rt>かんようく</rt></ruby>）。",
+          en:"\u201Ckao ga hiroi\u201D = to be well-connected (idiom, literally 'wide face').", ne:"धेरैसँग चिनजान भएको (वाक्पद्धति)।"},
+    dialog:[{who:"a",jp:"あの<ruby>人<rt>ひと</rt></ruby>、みんな<ruby>知<rt>し</rt></ruby>ってるね。",say:"あの人、みんな知ってるね。",en:"That person knows everyone.",ne:"ती मान्छेले सबैलाई चिन्छन्।"},
+            {who:"b",jp:"<ruby>部長<rt>ぶちょう</rt></ruby>は<ruby>顔<rt>かお</rt></ruby>が<ruby>広<rt>ひろ</rt></ruby>いからね。",say:"部長は顔が広いからね。",en:"Well, the boss is well-connected.",ne:"हो, बोसको धेरै चिनजान छ।"}]},
+  { hira:"てがあいたら、てつだって。", key:"あいたら", head:3, tail:0,
+    kanji:"<ruby>手<rt>て</rt></ruby>が<ruby>空<rt>あ</rt></ruby>いたら、<ruby>手伝<rt>てつだ</rt></ruby>って。",
+    say:"手が空いたら、手伝って。",
+    en:"Help me when you are free.",
+    ne:"फुर्सद भए सहयोग गर।",
+    note:{jp:"「<ruby>手<rt>て</rt></ruby>が<ruby>空<rt>あ</rt></ruby>く」＝やることが<ruby>終<rt>お</rt></ruby>わってひまになること（<ruby>慣用句<rt>かんようく</rt></ruby>）。",
+          en:"\u201Cte ga aku\u201D = to become free (tasks finished).", ne:"काम सकिएर फुर्सद हुनु।"},
+    dialog:[{who:"a",jp:"<ruby>手<rt>て</rt></ruby>が<ruby>空<rt>あ</rt></ruby>いたら、<ruby>手伝<rt>てつだ</rt></ruby>って。",say:"手が空いたら、手伝って。",en:"Help me when you're free.",ne:"फुर्सद भए सहयोग गर।"},
+            {who:"b",jp:"うん、もうすぐ<ruby>終<rt>お</rt></ruby>わるよ。",say:"うん、もうすぐ終わるよ。",en:"Sure, I'll be done soon.",ne:"हुन्छ, छिट्टै सकिन्छ।"}]},
+  { hira:"そろそろ、かえりましょう。", key:"そろそろ", head:3, tail:0,
+    kanji:"そろそろ、<ruby>帰<rt>かえ</rt></ruby>りましょう。",
+    say:"そろそろ、帰りましょう。",
+    en:"It is about time we headed home.",
+    ne:"अब घर फर्कौं।",
+    note:{jp:"「そろそろ」＝もうすぐ・ちょうどいい<ruby>時間<rt>じかん</rt></ruby>、という<ruby>気持<rt>きも</rt></ruby>ち。",
+          en:"\u201Csorosoro\u201D = \u201Cit's about time / soon now.\u201D", ne:"अब बेला भयो भन्ने भाव।"},
+    dialog:[{who:"a",jp:"そろそろ、<ruby>帰<rt>かえ</rt></ruby>りましょう。",say:"そろそろ、帰りましょう。",en:"It's about time we headed home.",ne:"अब घर फर्कौं।"},
+            {who:"b",jp:"そうだね、<ruby>遅<rt>おそ</rt></ruby>くなった。",say:"そうだね、遅くなった。",en:"Yeah, it's gotten late.",ne:"हो, ढिलो भइसक्यो।"}]},
+  { hira:"なるべく、はやくきてね。", key:"なるべく", head:3, tail:0,
+    kanji:"なるべく、<ruby>早<rt>はや</rt></ruby>く<ruby>来<rt>き</rt></ruby>てね。",
+    say:"なるべく、早く来てね。",
+    en:"Please come as early as you can.",
+    ne:"सकेसम्म चाँडो आऊ है।",
+    note:{jp:"「なるべく」＝できるだけ。",
+          en:"\u201Cnarubeku\u201D = \u201Cas much as possible.\u201D", ne:"सकेसम्म।"},
+    dialog:[{who:"a",jp:"<ruby>何時<rt>なんじ</rt></ruby>に<ruby>行<rt>い</rt></ruby>けばいい？",say:"何時に行けばいい？",en:"What time should I come?",ne:"कति बजे आउने?"},
+            {who:"b",jp:"なるべく、<ruby>早<rt>はや</rt></ruby>く<ruby>来<rt>き</rt></ruby>てね。",say:"なるべく、早く来てね。",en:"As early as you can, please.",ne:"सकेसम्म चाँडो आऊ है।"}]},
+  { hira:"やっぱり、これにします。", key:"やっぱり", head:3, tail:0,
+    kanji:"やっぱり、これにします。",
+    say:"やっぱり、これにします。",
+    en:"I will go with this one after all.",
+    ne:"अन्ततः म यही लिन्छु।",
+    note:{jp:"「やっぱり」＝<ruby>思<rt>おも</rt></ruby>った<ruby>通<rt>とお</rt></ruby>り／<ruby>結局<rt>けっきょく</rt></ruby>。<ruby>話<rt>はな</rt></ruby>し<ruby>言葉<rt>ことば</rt></ruby>。",
+          en:"\u201Cyappari\u201D = \u201Cafter all / as I thought\u201D (colloquial).", ne:"अन्ततः / सोचेजस्तै।"},
+    dialog:[{who:"a",jp:"<ruby>決<rt>き</rt></ruby>めた？",say:"決めた？",en:"Have you decided?",ne:"निर्णय गर्‍यौ?"},
+            {who:"b",jp:"うん、やっぱりこれにする。",say:"うん、やっぱりこれにする。",en:"Yeah, I'll go with this after all.",ne:"हो, अन्ततः यही लिन्छु।"}]},
+  { hira:"ふたりは、なかがいいね。", key:"なかがいい", head:3, tail:0,
+    kanji:"<ruby>二人<rt>ふたり</rt></ruby>は、<ruby>仲<rt>なか</rt></ruby>がいいね。",
+    say:"二人は、仲がいいね。",
+    en:"Those two get along well.",
+    ne:"ती दुई राम्रोसँग मिल्छन्।",
+    note:{jp:"「<ruby>仲<rt>なか</rt></ruby>がいい」＝<ruby>関係<rt>かんけい</rt></ruby>が<ruby>良<rt>よ</rt></ruby>いこと。",
+          en:"\u201Cnaka ga ii\u201D = to be close / get along well.", ne:"सम्बन्ध राम्रो हुनु।"},
+    dialog:[{who:"a",jp:"あの<ruby>二人<rt>ふたり</rt></ruby>、いつも<ruby>一緒<rt>いっしょ</rt></ruby>だね。",say:"あの二人、いつも一緒だね。",en:"Those two are always together.",ne:"ती दुई सधैं सँगै हुन्छन्।"},
+            {who:"b",jp:"うん、<ruby>仲<rt>なか</rt></ruby>がいいよね。",say:"うん、仲がいいよね。",en:"Yeah, they're close.",ne:"हो, मिल्छन् नि।"}]},
+  { hira:"いつもおせわになっております。", key:"おせわに", head:3, tail:0,
+    kanji:"いつもお<ruby>世話<rt>せわ</rt></ruby>になっております。",
+    say:"いつもお世話になっております。",
+    en:"Thank you for your continued support. (business greeting)",
+    ne:"सधैं सहयोगका लागि धन्यवाद। (व्यापारिक अभिवादन)",
+    note:{jp:"ビジネスの<ruby>定番<rt>ていばん</rt></ruby>あいさつ。<ruby>電話<rt>でんわ</rt></ruby>やメールの<ruby>最初<rt>さいしょ</rt></ruby>に<ruby>使<rt>つか</rt></ruby>う。",
+          en:"A standard business greeting used at the start of a call or email.", ne:"फोन/इमेलको सुरुमा प्रयोग हुने व्यापारिक अभिवादन।"},
+    dialog:[{who:"a",jp:"お<ruby>電話<rt>でんわ</rt></ruby>ありがとうございます。",say:"お電話ありがとうございます。",en:"Thank you for your call.",ne:"फोन गर्नुभएकोमा धन्यवाद।"},
+            {who:"b",jp:"いつもお<ruby>世話<rt>せわ</rt></ruby>になっております。",say:"いつもお世話になっております。",en:"Thank you for your continued support.",ne:"सधैं सहयोगका लागि धन्यवाद।"}]}
+];
+
+// build cells: reveal head/tail chars of the key word as HINTS, blank only the middle
+// 先頭 n 文字をブランク（選択対象）、残りはすべて表示
+function buildCells(hira, n){
+  return Array.from(hira).map((c, i) => ({
+    c,
+    blank: i < n,
+    hint:  false,
+    punc:  "、。！？・".includes(c)
+  }));
+}
+const SENTENCES = RAW_SENTS.map(s => ({ ...s, cells: buildCells(s.hira, 3) }));
+
+const POOL = ["か","さ","た","な","は","ま","や","ら","わ","き","し","ち","に","ひ","み","り",
+  "く","つ","ふ","む","ゆ","る","け","せ","て","ね","へ","め","れ","こ","そ","の","ほ","も",
+  "よ","ろ","を","ん","あ","い","う","え","お","かい","na"].filter(x=>x.length===1);
+
+/* ============================================================ AUDIO ============ */
+let actx=null;
+function unlockAudio(){ if(actx) return; try{ actx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} if(actx&&actx.state==="suspended") actx.resume(); }
+function tone(f,d,t,when,v){ if(!actx) return; const s=actx.currentTime+(when||0),o=actx.createOscillator(),g=actx.createGain();
+  o.type=t||"sine"; o.frequency.value=f; g.gain.setValueAtTime(0,s); g.gain.linearRampToValueAtTime(v||0.18,s+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001,s+d); o.connect(g); g.connect(actx.destination); o.start(s); o.stop(s+d+0.02); }
+const sCorrect=()=>{ tone(660,0.12,"triangle",0,0.2); tone(990,0.16,"triangle",0.07,0.18); };
+const sWrong=()=>{ tone(150,0.18,"sawtooth",0,0.14); };
+const sDone=()=>{ [523,659,784,1047].forEach((f,i)=>tone(f,0.3,"triangle",i*0.08,0.18)); };
+
+/* ============================================================ SPEECH =========== */
+let jaVoice=null;
+function loadVoices(){ if(!("speechSynthesis" in window)) return; const vs=speechSynthesis.getVoices();
+  jaVoice = vs.find(v=>v.lang==="ja-JP") || vs.find(v=>(v.lang||"").startsWith("ja")) || null; }
+if("speechSynthesis" in window){ loadVoices(); speechSynthesis.onvoiceschanged=loadVoices; }
+function speak(text){ if(!("speechSynthesis" in window)) return; speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(text); u.lang="ja-JP"; u.rate=0.85; if(jaVoice) u.voice=jaVoice; speechSynthesis.speak(u); }
+
+/* ============================================================ GAME ============== */
+const $ = id=>document.getElementById(id);
+const field=$("field"), board=$("board");
+const reduce=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const SPEEDS=[{l:"×1",m:1.0},{l:"×1.5",m:1.5},{l:"×2",m:2.0}];
+let speedIdx=1;
+
+let allItems=[], pos=0, item=null, target=[], nextIndex=0;
+let slotEls=[], bubbles=[], W=0, H=0, raf=null, locked=false;
+let hintShown=false;
+
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a; }
+function speedMul(){ return SPEEDS[speedIdx].m * (reduce?0.4:1); }
+
+function startGame(m){
+  unlockAudio();
+  if("speechSynthesis" in window){ try{speechSynthesis.cancel();}catch(e){} }
+  allItems = m==="word"
+    ? shuffle(WORDS.map(w=>({...w,type:"word"})))
+    : shuffle(SENTENCES.map(s=>({...s,type:"sent"})));
+  pos=0;
+  $("title").classList.remove("on"); $("game").classList.add("on");
+  requestAnimationFrame(()=>{ measure(); loadItem(); });
+}
+function measure(){ const r=field.getBoundingClientRect(); W=r.width; H=r.height; }
+
+function loadItem(){
+  item=allItems[pos]; nextIndex=0; locked=false; slotEls=[];
+  $("prog").textContent=(pos+1)+" / "+allItems.length;
+  if(item.type==="word") buildWordBoard(); else buildSentBoard();
+  setHint(); applyHintVisibility();
+  buildField();
+  if(raf) cancelAnimationFrame(raf); tick();
+}
+
+function buildWordBoard(){
+  target=Array.from(item.hira);
+  board.innerHTML="";
+  const wrap=document.createElement("div"); wrap.className="slots";
+  target.forEach(ch=>{ const d=document.createElement("div"); d.className="slot guide"; d.textContent=ch; wrap.appendChild(d); slotEls.push(d); });
+  board.appendChild(wrap);
+}
+function buildSentBoard(){
+  target=[];
+  board.innerHTML="";
+  const line=document.createElement("div"); line.className="sline";
+  item.cells.forEach(cell=>{
+    if(cell.blank){
+      const b=document.createElement("span"); b.className="bslot"; b.textContent=cell.c; line.appendChild(b); slotEls.push(b); target.push(cell.c);
+    }else{
+      const s=document.createElement("span"); s.className="cell"+(cell.punc?" punc":"")+(cell.hint?" hint":""); s.textContent=cell.c; line.appendChild(s);
+    }
+  });
+  board.appendChild(line);
+}
+
+function setHint(){
+  const h=$("hint");
+  if(item.type==="word"){ h.innerHTML='<span class="en">'+item.en+'</span> · <span class="ne">'+item.ne+'</span>'; }
+  else{ h.innerHTML='<span class="en">'+item.en+'</span><br><span class="ne">'+item.ne+'</span>'; }
+}
+function applyHintVisibility(){
+  hintShown=(item.type==="word");
+  $("hint").classList.toggle("hidden", !hintShown);
+}
+
+function clearBubbles(){ bubbles.forEach(b=>b.el.remove()); bubbles=[]; }
+function buildField(){
+  clearBubbles(); measure();
+  const chars=target.slice();
+  const wanted=item.type==="word" ? Math.min(12,Math.max(8,target.length+6)) : Math.min(13,Math.max(9,target.length+7));
+  const avoid=new Set(target);
+  for(let i=chars.length;i<wanted;i++){ let c,g=0; do{ c=POOL[Math.floor(Math.random()*POOL.length)]; g++; }while(avoid.has(c)&&g<20); chars.push(c); }
+  shuffle(chars); chars.forEach(spawnBubble);
+}
+function spawnBubble(ch){
+  const palette=["blue","red","green","yellow","whiteb"];
+  const col=palette[Math.floor(Math.random()*palette.length)];
+  const dark=(col==="yellow"||col==="whiteb");
+  const r=32;
+  const el=document.createElement("div"); el.className="bubble"; el.textContent=ch;
+  el.style.background="var(--"+col+")"; el.style.color=dark?"#2B2440":"#fff";
+  const x=r+Math.random()*Math.max(1,(W-2*r)), y=r+Math.random()*Math.max(1,(H-2*r));
+  const base=0.32+Math.random()*0.5, ang=Math.random()*Math.PI*2;
+  const b={el,ch,x,y,base,ang,r,vx:0,vy:0}; applyVel(b); place(b);
+  el.addEventListener("click",()=>onTap(b)); field.appendChild(el); bubbles.push(b);
+}
+function applyVel(b){ const sp=b.base*speedMul(); b.vx=Math.cos(b.ang)*sp; b.vy=Math.sin(b.ang)*sp; }
+function place(b){ b.el.style.setProperty("--x",(b.x-b.r)+"px"); b.el.style.setProperty("--y",(b.y-b.r)+"px");
+  b.el.style.transform="translate3d("+(b.x-b.r)+"px,"+(b.y-b.r)+"px,0)"; }
+function tick(){
+  for(const b of bubbles){ b.x+=b.vx; b.y+=b.vy;
+    if(b.x<b.r){b.x=b.r;b.vx*=-1;b.ang=Math.atan2(b.vy,b.vx);} if(b.x>W-b.r){b.x=W-b.r;b.vx*=-1;b.ang=Math.atan2(b.vy,b.vx);}
+    if(b.y<b.r){b.y=b.r;b.vy*=-1;b.ang=Math.atan2(b.vy,b.vx);} if(b.y>H-b.r){b.y=H-b.r;b.vy*=-1;b.ang=Math.atan2(b.vy,b.vx);}
+    place(b); }
+  raf=requestAnimationFrame(tick);
+}
+function onTap(b){
+  if(locked) return;
+  if(b.ch===target[nextIndex]){
+    sCorrect();
+    const slot=slotEls[nextIndex]; if(slot){ slot.textContent=target[nextIndex]; slot.classList.add("done"); }
+    nextIndex++;
+    b.el.classList.add("pop"); const ref=b;
+    setTimeout(()=>{ ref.el.remove(); bubbles=bubbles.filter(x=>x!==ref); if(nextIndex<target.length) addDistractor(); },260);
+    if(nextIndex>=target.length){ locked=true; setTimeout(reveal,380); }
+  }else{ sWrong(); b.el.classList.remove("shake"); void b.el.offsetWidth; b.el.classList.add("shake"); }
+}
+function addDistractor(){ let c,g=0; do{ c=POOL[Math.floor(Math.random()*POOL.length)]; g++; }while(target.includes(c)&&g<20); spawnBubble(c); }
+
+/* ---------- ANSWER ---------- */
+function h(tag,cls,html){ const e=document.createElement(tag); if(cls)e.className=cls; if(html!=null)e.innerHTML=html; return e; }
+function speakBtn(cls,text,handler){ const b=h("button",cls,text); b.addEventListener("click",handler); return b; }
+
+function reveal(){
+  sDone();
+  const body=$("aBody"); body.innerHTML="";
+  if(item.type==="word") renderWordCard(body); else renderSentCard(body);
+  $("answer").classList.add("on");
+  setTimeout(()=>speak(item.type==="word"?item.hira:item.say),300);
+}
+function renderWordCard(body){
+  const head=h("div","ahead");
+  head.appendChild(h("div","emoji",item.emoji));
+  head.appendChild(h("div","kanji word",item.kanji));
+  head.appendChild(speakBtn("speak","🔊",()=>speak(item.hira)));
+  head.appendChild(h("div","romaji",item.romaji));
+  body.appendChild(head);
+  const means=h("div","means");
+  means.appendChild(h("div","mrow en",'<span class="tag en">EN</span><span class="v">'+item.en+'</span>'));
+  means.appendChild(h("div","mrow ne",'<span class="tag ne">ने</span><span class="v">'+item.ne+'</span>'));
+  body.appendChild(means);
+  body.appendChild(h("div","exhead","れいぶん · EXAMPLES · उदाहरण"));
+  item.ex.forEach(e=>{
+    const box=h("div","ex"); const jp=h("div","jp",e.jp); jp.appendChild(speakBtn("mini","🔊",()=>speak(e.say)));
+    box.appendChild(jp); box.appendChild(h("div","en",e.en)); box.appendChild(h("div","ne",e.ne)); body.appendChild(box);
+  });
+}
+function renderSentCard(body){
+  const head=h("div","ahead");
+  head.appendChild(h("div","kanji sent",item.kanji));
+  head.appendChild(speakBtn("speak","🔊",()=>speak(item.say)));
+  body.appendChild(head);
+  const means=h("div","means");
+  means.appendChild(h("div","mrow en",'<span class="tag en">EN</span><span class="v">'+item.en+'</span>'));
+  means.appendChild(h("div","mrow ne",'<span class="tag ne">ने</span><span class="v">'+item.ne+'</span>'));
+  body.appendChild(means);
+  const note=h("div","note");
+  note.appendChild(h("div","lb","POINT · ポイント"));
+  note.appendChild(h("div","jp",item.note.jp));
+  note.appendChild(h("div","sm",'<span class="en">'+item.note.en+'</span><br><span class="ne">'+item.note.ne+'</span>'));
+  body.appendChild(note);
+  body.appendChild(h("div","exhead","かいわ · CONVERSATION · कुराकानी"));
+  item.dialog.forEach(t=>{
+    const turn=h("div","turn");
+    turn.appendChild(h("div","who "+t.who, t.who==="a"?"A":"B"));
+    const bub=h("div","bub");
+    const jp=h("div","jp",t.jp); jp.appendChild(speakBtn("mini","🔊",()=>speak(t.say)));
+    bub.appendChild(jp); bub.appendChild(h("div","en",t.en)); bub.appendChild(h("div","ne",t.ne));
+    turn.appendChild(bub); body.appendChild(turn);
+  });
+}
+function nextWord(){ $("answer").classList.remove("on"); pos=(pos+1)%allItems.length; loadItem(); }
+
+/* ---------- controls ---------- */
+function goHome(){ if(raf) cancelAnimationFrame(raf); clearBubbles(); $("answer").classList.remove("on");
+  $("game").classList.remove("on"); $("title").classList.add("on"); }
+
+document.querySelectorAll(".mode[data-mode]").forEach(btn=>btn.addEventListener("click",()=>startGame(btn.dataset.mode)));
+$("nextBtn").addEventListener("click",nextWord);
+$("homeBtn").addEventListener("click",goHome);
+$("hintBtn").addEventListener("click",()=>{ hintShown=!hintShown; $("hint").classList.toggle("hidden",!hintShown); });
+$("speedBtn").addEventListener("click",()=>{ speedIdx=(speedIdx+1)%SPEEDS.length; $("speedBtn").textContent=SPEEDS[speedIdx].l; bubbles.forEach(applyVel); });
+$("speedBtn").textContent=SPEEDS[speedIdx].l;
+window.addEventListener("resize",()=>{ if($("game").classList.contains("on")) measure(); });
+</script>
+</body>
+</html>
